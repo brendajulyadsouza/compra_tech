@@ -1,33 +1,25 @@
-# CompraTech - Site de Afiliados
+# CompraTech - Vitrine compartilhada entre dispositivos
 
-## Uso local
+## Como funciona agora
 
-1. Abra `index.html` para ver a vitrine.
-2. Abra `admin.html` para cadastrar produtos.
-3. No ADM, cole o link de afiliacao e salve.
+- O cadastro no `admin.html` salva no banco SQLite.
+- A `index.html` carrega os produtos da API.
+- Resultado: os produtos aparecem para todos os dispositivos.
 
-## Publicar online (Passo 1)
+## Rodar local
 
-### Opcao A: Vercel
+1. `npm install`
+2. `npm start`
+3. Abra `http://localhost:3000`
 
-1. Suba este projeto para um repositorio GitHub.
-2. No painel da Vercel, clique em `Add New Project`.
-3. Importe o repositorio e publique.
-4. O arquivo `vercel.json` ja esta pronto.
+## Login admin
 
-### Opcao B: Netlify
+- Usuario e senha estao no arquivo `.env`:
+  - `ADMIN_USER`
+  - `ADMIN_PASS`
 
-1. Suba este projeto para um repositorio GitHub.
-2. No painel da Netlify, clique em `Add new site` -> `Import an existing project`.
-3. Escolha o repositorio e publique.
-4. O arquivo `netlify.toml` ja esta pronto.
+## Arquivos principais
 
-## Observacao importante
-
-- Nesta versao, produtos e login ficam no navegador (`localStorage/sessionStorage`).
-- Isso funciona para testes e uso simples, mas nao e backend seguro.
-
-## Proximos passos (2 e 3)
-
-1. Login seguro real com backend.
-2. Importacao automatica de produtos com persistencia em banco.
+- `server.js` (API + auth + SQLite)
+- `admin.js` (painel integrado com API)
+- `site.js` (vitrine integrada com API)

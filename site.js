@@ -9,9 +9,14 @@ function safeUrl(value) {
   }
 }
 
-function renderProducts() {
-  const publicProducts = Array.isArray(window.STATIC_PRODUCTS) ? window.STATIC_PRODUCTS : [];
-  const products = publicProducts.length ? publicProducts : loadProducts();
+async function fetchProducts() {
+  const response = await fetch("/api/products");
+  if (!response.ok) throw new Error("Falha ao carregar produtos.");
+  const payload = await response.json();
+  return Array.isArray(payload.products) ? payload.products : [];
+}
+
+function renderProducts(products) {
   grid.innerHTML = "";
 
   if (!products.length) {
@@ -37,7 +42,7 @@ function renderProducts() {
     title.textContent = product.title || "Produto sem titulo";
     content.appendChild(title);
 
-    if (product.price) {
+    if (product.price !== null && product.price !== undefined && product.price !== "") {
       const price = document.createElement("p");
       price.className = "price";
       price.textContent = formatBRL(product.price);
@@ -64,4 +69,15 @@ function renderProducts() {
   }
 }
 
-renderProducts();
+async function initStorefront() {
+  try {
+    const products = await fetchProducts();
+    renderProducts(products);
+  } catch (error) {
+    console.error(error);
+    emptyState.style.display = "block";
+    emptyState.textContent = "Nao foi possivel carregar produtos agora.";
+  }
+}
+
+initStorefront();
