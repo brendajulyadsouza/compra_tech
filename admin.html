@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADM - CompraTech</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
+  <link rel="apple-touch-icon" href="./logo.png?v=2">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <section id="login-gate" class="container auth-wrapper">
+    <section class="card auth-card">
+      <a class="back-link" href="index.html">Voltar para vitrine</a>
+      <h1>Acesso Admin</h1>
+      <p class="subtitle">Entre para gerenciar os produtos.</p>
+      <form id="login-form" class="form">
+        <label>
+          Usuario
+          <input id="login-user" type="text" required autocomplete="username">
+        </label>
+        <label>
+          Senha
+          <input id="login-pass" type="password" required autocomplete="current-password">
+        </label>
+        <button class="btn-primary" type="submit">Entrar</button>
+      </form>
+      <p id="login-status" class="status-message"></p>
+    </section>
+  </section>
+
+  <div id="admin-app" hidden>
+    <header class="admin-header">
+      <h1>Painel ADM</h1>
+      <div class="admin-actions">
+        <a class="back-link" href="index.html">Voltar para vitrine</a>
+        <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
+      </div>
+    </header>
+
+    <main class="container admin-layout">
+      <section class="card">
+        <h2>Novo produto</h2>
+        <form id="product-form" class="form">
+          <label>
+            Link de afiliacao Mercado Livre
+            <input id="affiliate-link" type="url" required placeholder="https://mercadolivre...">
+          </label>
+          <button id="auto-fill-btn" type="button" class="btn-secondary">Preencher automatico pelo link</button>
+
+          <label>
+            Titulo
+            <input id="title" type="text">
+          </label>
+          <label>
+            Preco (R$)
+            <input id="price" type="number" step="0.01" min="0">
+          </label>
+          <label>
+            URL da imagem
+            <input id="image" type="url">
+          </label>
+          <label>
+            Descricao
+            <textarea id="description" rows="3"></textarea>
+          </label>
+
+          <button class="btn-primary" type="submit">Salvar produto</button>
+        </form>
+        <p id="status-message" class="status-message"></p>
+      </section>
+
+      <section class="card">
+        <h2>Produtos cadastrados</h2>
+        <div id="admin-products-list" class="admin-products-list"></div>
+        <p id="admin-empty-state" class="empty-state">Voce ainda nao cadastrou produtos.</p>
+      </section>
+    </main>
+  </div>
+
+  <button id="a11y-toggle" class="a11y-toggle" type="button" aria-controls="a11y-panel" aria-expanded="false">
+    Acessibilidade
+  </button>
+
+  <section id="a11y-panel" class="a11y-panel" hidden aria-label="Painel de acessibilidade">
+    <h2>Painel de acessibilidade</h2>
+    <div class="a11y-group">
+      <p class="a11y-label">Tema</p>
+      <div class="a11y-row">
+        <button type="button" class="btn-secondary" data-theme="light">Claro</button>
+        <button type="button" class="btn-secondary" data-theme="dark">Escuro</button>
+      </div>
+    </div>
+    <div class="a11y-group">
+      <p class="a11y-label">Tamanho da fonte: <span id="font-scale-value">100%</span></p>
+      <div class="a11y-row">
+        <button type="button" class="btn-secondary" id="font-dec">A-</button>
+        <button type="button" class="btn-secondary" id="font-reset">Reset</button>
+        <button type="button" class="btn-secondary" id="font-inc">A+</button>
+      </div>
+    </div>
+    <div class="a11y-group">
+      <div class="a11y-row">
+        <button type="button" class="btn-secondary a11y-option" id="opt-contrast" aria-pressed="false">Alto contraste</button>
+        <button type="button" class="btn-secondary a11y-option" id="opt-readable-font" aria-pressed="false">Fonte legivel</button>
+      </div>
+      <div class="a11y-row">
+        <button type="button" class="btn-secondary a11y-option" id="opt-underline" aria-pressed="false">Sublinhar links</button>
+        <button type="button" class="btn-secondary a11y-option" id="opt-reduce-motion" aria-pressed="false">Reduzir animacoes</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="accessibility.js"></script>
+  <script src="storage.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
