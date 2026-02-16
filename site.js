@@ -10,7 +10,8 @@ function safeUrl(value) {
 }
 
 function renderProducts() {
-  const products = loadProducts();
+  const publicProducts = Array.isArray(window.STATIC_PRODUCTS) ? window.STATIC_PRODUCTS : [];
+  const products = publicProducts.length ? publicProducts : loadProducts();
   grid.innerHTML = "";
 
   if (!products.length) {
