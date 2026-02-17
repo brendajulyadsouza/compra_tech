@@ -28,6 +28,7 @@ function normalizeAffiliateUrl(value) {
         break;
       }
     }
+    if (parsed.protocol === "http:") parsed.protocol = "https:";
     return parsed.toString();
   } catch {
     return "";
@@ -54,21 +55,32 @@ function isLikelyIconUrl(urlValue) {
   );
 }
 
+function isGeneratedPreviewUrl(urlValue) {
+  const value = String(urlValue || "").toLowerCase();
+  return value.includes("image.thum.io") || value.includes("image.microlink.io");
+}
+
 function buildPreviewImageFromLink(link) {
   const normalized = normalizeAffiliateUrl(link);
   if (!normalized) return "";
-  return `https://image.thum.io/get/width/900/noanimate/${normalized}`;
+  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
 }
 
-function buildPreviewImageAltFromLink(link) {
-  const normalized = normalizeAffiliateUrl(link);
+function toProxyImageUrl(urlValue) {
+  const normalized = normalizeAffiliateUrl(urlValue);
   if (!normalized) return "";
-  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false`;
+  try {
+    const parsed = new URL(normalized);
+    const noProtocol = `${parsed.host}${parsed.pathname}${parsed.search}`;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(noProtocol)}&w=900&h=900&fit=contain`;
+  } catch {
+    return "";
+  }
 }
 
 function pickProductImage(product) {
   const imageUrl = normalizeAffiliateUrl(product.image);
-  if (imageUrl && !isLikelyIconUrl(imageUrl)) return imageUrl;
+  if (imageUrl && !isLikelyIconUrl(imageUrl) && !isGeneratedPreviewUrl(imageUrl)) return imageUrl;
   return buildPreviewImageFromLink(product.affiliate_link);
 }
 
@@ -115,9 +127,9 @@ function render(products) {
     image.referrerPolicy = "no-referrer";
     image.alt = product.title || "Produto";
     applyImageFallbacks(image, [
+      toProxyImageUrl(pickProductImage(product)),
       pickProductImage(product),
       buildPreviewImageFromLink(product.affiliate_link),
-      buildPreviewImageAltFromLink(product.affiliate_link),
     ]);
     card.appendChild(image);
 

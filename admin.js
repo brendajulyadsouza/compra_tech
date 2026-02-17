@@ -46,6 +46,14 @@ function isValidUrl(value) {
   }
 }
 
+function isHttpOnlyUrl(value) {
+  try {
+    return new URL(String(value).trim()).protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 function normalizeUrl(value) {
   if (!value) return "";
   let raw = String(value).trim();
@@ -70,6 +78,7 @@ function normalizeUrl(value) {
         break;
       }
     }
+    if (parsed.protocol === "http:") parsed.protocol = "https:";
     return parsed.toString();
   } catch {
     return "";
@@ -90,7 +99,7 @@ function isLikelyIconUrl(urlValue) {
 function previewScreenshotFromLink(link) {
   const normalized = normalizeUrl(link);
   if (!normalized) return "";
-  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false`;
+  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
 }
 
 function decodeDeep(value, rounds = 3) {
@@ -308,6 +317,10 @@ async function fillByAffiliateLink() {
     inputPrice.value = data.price || "";
     inputImage.value = normalizeUrl(data.image) || previewScreenshotFromLink(link) || "";
     inputDescription.value = data.description || "";
+    if (isHttpOnlyUrl(data.image)) {
+      setStatus("Imagem em http detectada: convertida automaticamente para https.", false);
+      return;
+    }
     setStatus(data.source === "meli_api" ? "Dados preenchidos automaticamente." : "Preenchimento parcial aplicado.");
   } catch (error) {
     setStatus(error.message || "Nao foi possivel preencher automatico.", true);
@@ -345,7 +358,8 @@ form.addEventListener("submit", async (event) => {
   const affiliateLink = inputAffiliateLink.value.trim();
   let title = inputTitle.value.trim();
   let price = inputPrice.value;
-  let image = normalizeUrl(inputImage.value.trim());
+  const rawImage = inputImage.value.trim();
+  let image = normalizeUrl(rawImage);
   let description = inputDescription.value.trim();
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
@@ -365,6 +379,9 @@ form.addEventListener("submit", async (event) => {
   if (!title) return setStatus("Titulo e obrigatorio.", true);
   if (!image) image = previewScreenshotFromLink(affiliateLink);
   if (image && !isValidUrl(image)) return setStatus("URL da imagem invalida.", true);
+  if (rawImage && isHttpOnlyUrl(rawImage)) {
+    setStatus("Imagem em http detectada: convertida para https antes de salvar.");
+  }
 
   try {
     const client = window.supabaseClient;
