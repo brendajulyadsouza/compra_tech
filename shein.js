@@ -56,6 +56,12 @@ function isLikelyIconUrl(urlValue) {
 function buildPreviewImageFromLink(link) {
   const normalized = normalizeAffiliateUrl(link);
   if (!normalized) return "";
+  return `https://image.thum.io/get/width/900/noanimate/${normalized}`;
+}
+
+function buildPreviewImageAltFromLink(link) {
+  const normalized = normalizeAffiliateUrl(link);
+  if (!normalized) return "";
   return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false`;
 }
 
@@ -63,6 +69,22 @@ function pickProductImage(product) {
   const imageUrl = normalizeAffiliateUrl(product.image);
   if (imageUrl && !isLikelyIconUrl(imageUrl)) return imageUrl;
   return buildPreviewImageFromLink(product.affiliate_link);
+}
+
+function applyImageFallbacks(img, sources) {
+  let idx = 0;
+  const next = () => {
+    while (idx < sources.length) {
+      const src = sources[idx++];
+      if (src) {
+        img.src = src;
+        return;
+      }
+    }
+    img.src = "https://via.placeholder.com/800x800?text=Produto";
+  };
+  img.addEventListener("error", next);
+  next();
 }
 
 async function fetchProducts() {
@@ -89,16 +111,13 @@ function render(products) {
     card.className = "product-card";
 
     const image = document.createElement("img");
-    image.src = pickProductImage(product) || "https://via.placeholder.com/800x800?text=Produto";
+    image.referrerPolicy = "no-referrer";
     image.alt = product.title || "Produto";
-    image.addEventListener("error", () => {
-      const fallback = buildPreviewImageFromLink(product.affiliate_link);
-      if (fallback && image.src !== fallback) {
-        image.src = fallback;
-        return;
-      }
-      image.src = "https://via.placeholder.com/800x800?text=Produto";
-    });
+    applyImageFallbacks(image, [
+      pickProductImage(product),
+      buildPreviewImageFromLink(product.affiliate_link),
+      buildPreviewImageAltFromLink(product.affiliate_link),
+    ]);
     card.appendChild(image);
 
     const content = document.createElement("div");
