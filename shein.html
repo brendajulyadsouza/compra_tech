@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CompraTech</title>
+  <title>CompraTech - Shein</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
   <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
   <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
@@ -18,7 +18,7 @@
         <span>CompraTech</span>
       </div>
       <nav class="topnav">
-        <a href="#mercado-livre">Vitrine Mercado Livre</a>
+        <a href="index.html#mercado-livre">Vitrine Mercado Livre</a>
         <a href="shein.html">Pagina Shein</a>
         <a class="admin-link" href="admin.html">Painel ADM</a>
       </nav>
@@ -27,24 +27,17 @@
 
   <header class="hero">
     <div class="hero__content">
-      <p class="tag">Afiliados em destaque</p>
-      <h1>Ofertas de tecnologia, casa e moda</h1>
-      <p class="subtitle">Catalogo de links de afiliacao de lojas como Mercado Livre e Shein.</p>
-      <a class="btn-primary hero-cta" href="#vitrine">Ver vitrine</a>
+      <p class="tag">Shein</p>
+      <h1>Ofertas Shein</h1>
+      <p class="subtitle">Todos os produtos de afiliacao da Shein em uma pagina dedicada.</p>
     </div>
   </header>
 
-  <main id="vitrine" class="container">
-    <section id="mercado-livre">
-      <h2>Mercado Livre</h2>
-      <div id="ml-products-grid" class="products-grid"></div>
-      <p id="ml-empty-state" class="empty-state">Nenhum produto do Mercado Livre cadastrado.</p>
-    </section>
-
+  <main class="container">
     <section>
-      <h2>Shein</h2>
-      <div id="shein-products-grid" class="products-grid"></div>
-      <p id="shein-empty-state" class="empty-state">Nenhum produto da Shein cadastrado.</p>
+      <h2>Vitrine Shein</h2>
+      <div id="shein-only-grid" class="products-grid"></div>
+      <p id="shein-only-empty" class="empty-state">Nenhum produto da Shein cadastrado.</p>
     </section>
   </main>
 
@@ -85,6 +78,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="storage.js"></script>
-  <script src="site.js"></script>
+  <script src="shein.js"></script>
 </body>
 </html>

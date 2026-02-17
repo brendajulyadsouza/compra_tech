@@ -111,6 +111,27 @@ body.reduce-motion *::after {
   gap: 1rem;
 }
 
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.topnav a {
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--accent-dark);
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.topnav a:hover {
+  border-color: var(--border);
+  background: var(--surface-alt);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -432,6 +453,8 @@ h2 {
 @media (max-width: 680px) {
   .topbar__inner {
     padding: 0.7rem 0;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .admin-actions {
