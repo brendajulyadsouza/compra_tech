@@ -1,5 +1,7 @@
-const grid = document.getElementById("products-grid");
-const emptyState = document.getElementById("empty-state");
+const mlGrid = document.getElementById("ml-products-grid");
+const mlEmptyState = document.getElementById("ml-empty-state");
+const sheinGrid = document.getElementById("shein-products-grid");
+const sheinEmptyState = document.getElementById("shein-empty-state");
 
 function safeUrl(value) {
   try {
@@ -14,11 +16,9 @@ function detectStore(urlValue) {
     const host = new URL(urlValue).hostname.toLowerCase();
     if (host.includes("shein")) return "Shein";
     if (host.includes("mercadolivre") || host.includes("mercadolibre")) return "Mercado Livre";
-    if (host.includes("amazon")) return "Amazon";
-    if (host.includes("magazineluiza") || host.includes("magalu")) return "Magalu";
-    return "Marketplace";
+    return "Outros";
   } catch {
-    return "Marketplace";
+    return "Outros";
   }
 }
 
@@ -35,65 +35,74 @@ async function fetchProducts() {
   return Array.isArray(data) ? data : [];
 }
 
-function renderProducts(products) {
-  grid.innerHTML = "";
+function createProductCard(product) {
+  const card = document.createElement("article");
+  card.className = "product-card";
 
+  const image = document.createElement("img");
+  image.src = safeUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
+  image.alt = product.title || "Produto";
+  card.appendChild(image);
+
+  const content = document.createElement("div");
+  content.className = "product-card__content";
+
+  const meta = document.createElement("div");
+  meta.className = "product-card__meta";
+  const chip = document.createElement("span");
+  chip.className = "store-chip";
+  chip.textContent = detectStore(product.affiliate_link);
+  meta.appendChild(chip);
+  content.appendChild(meta);
+
+  const title = document.createElement("h3");
+  title.textContent = product.title || "Produto sem titulo";
+  content.appendChild(title);
+
+  if (product.price !== null && product.price !== undefined && product.price !== "") {
+    const price = document.createElement("p");
+    price.className = "price";
+    price.textContent = formatBRL(product.price);
+    content.appendChild(price);
+  }
+
+  if (product.description) {
+    const description = document.createElement("p");
+    description.className = "description";
+    description.textContent = product.description;
+    content.appendChild(description);
+  }
+
+  const link = document.createElement("a");
+  link.className = "btn-buy";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.href = safeUrl(product.affiliate_link) || "#";
+  link.textContent = "Ver oferta";
+  content.appendChild(link);
+
+  card.appendChild(content);
+  return card;
+}
+
+function renderSection(products, grid, emptyState) {
+  grid.innerHTML = "";
   if (!products.length) {
     emptyState.style.display = "block";
     return;
   }
-
   emptyState.style.display = "none";
-
   for (const product of products) {
-    const card = document.createElement("article");
-    card.className = "product-card";
-
-    const image = document.createElement("img");
-    image.src = safeUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
-    image.alt = product.title || "Produto";
-    card.appendChild(image);
-
-    const content = document.createElement("div");
-    content.className = "product-card__content";
-
-    const meta = document.createElement("div");
-    meta.className = "product-card__meta";
-    const chip = document.createElement("span");
-    chip.className = "store-chip";
-    chip.textContent = detectStore(product.affiliate_link);
-    meta.appendChild(chip);
-    content.appendChild(meta);
-
-    const title = document.createElement("h3");
-    title.textContent = product.title || "Produto sem titulo";
-    content.appendChild(title);
-
-    if (product.price !== null && product.price !== undefined && product.price !== "") {
-      const price = document.createElement("p");
-      price.className = "price";
-      price.textContent = formatBRL(product.price);
-      content.appendChild(price);
-    }
-
-    if (product.description) {
-      const description = document.createElement("p");
-      description.className = "description";
-      description.textContent = product.description;
-      content.appendChild(description);
-    }
-
-    const link = document.createElement("a");
-    link.className = "btn-buy";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.href = safeUrl(product.affiliate_link) || "#";
-    link.textContent = "Ver oferta";
-    content.appendChild(link);
-
-    card.appendChild(content);
-    grid.appendChild(card);
+    grid.appendChild(createProductCard(product));
   }
+}
+
+function renderProducts(products) {
+  const mlProducts = products.filter((product) => detectStore(product.affiliate_link) === "Mercado Livre");
+  const sheinProducts = products.filter((product) => detectStore(product.affiliate_link) === "Shein");
+
+  renderSection(mlProducts, mlGrid, mlEmptyState);
+  renderSection(sheinProducts, sheinGrid, sheinEmptyState);
 }
 
 async function initStorefront() {
@@ -102,8 +111,10 @@ async function initStorefront() {
     renderProducts(products);
   } catch (error) {
     console.error(error);
-    emptyState.style.display = "block";
-    emptyState.textContent = "Nao foi possivel carregar produtos agora.";
+    mlEmptyState.style.display = "block";
+    sheinEmptyState.style.display = "block";
+    mlEmptyState.textContent = "Nao foi possivel carregar produtos agora.";
+    sheinEmptyState.textContent = "Nao foi possivel carregar produtos agora.";
   }
 }
 

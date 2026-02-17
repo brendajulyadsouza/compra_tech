@@ -132,6 +132,10 @@ body.reduce-motion *::after {
   margin: 0 auto 3.2rem;
 }
 
+main section + section {
+  margin-top: 2rem;
+}
+
 .hero {
   padding: 4rem 0 2.4rem;
 }
