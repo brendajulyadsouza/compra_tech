@@ -18,8 +18,9 @@
         <span>CompraTech</span>
       </div>
       <nav class="topnav">
-        <a href="#mercado-livre">Vitrine Mercado Livre</a>
-        <a href="shein.html">Pagina Shein</a>
+        <a href="index.html">Pagina Inicial</a>
+        <a href="mercado-livre.html">Vitrine Mercado Livre</a>
+        <a href="shein.html">Vitrine Shein</a>
         <a class="admin-link" href="admin.html">Painel ADM</a>
       </nav>
     </div>
@@ -29,14 +30,17 @@
     <div class="hero__content">
       <p class="tag">Afiliados em destaque</p>
       <h1>Ofertas de tecnologia, casa e moda</h1>
-      <p class="subtitle">Catalogo de links de afiliacao de lojas como Mercado Livre e Shein.</p>
-      <a class="btn-primary hero-cta" href="#vitrine">Ver vitrine</a>
+      <p class="subtitle">Escolha sua vitrine favorita e jogue no Game Lounge antes de comprar.</p>
+      <div class="arcade-row">
+        <a class="btn-primary hero-cta" href="mercado-livre.html">Ir para Mercado Livre</a>
+        <a class="btn-secondary" href="shein.html">Ir para Shein</a>
+      </div>
     </div>
   </header>
 
-  <main id="vitrine" class="container">
+  <main class="container">
     <section class="arcade-section" id="jogos">
-      <h2>Game Lounge CompraTech</h2>
+      <h2 class="home-title-center">Game Lounge CompraTech</h2>
       <p class="subtitle">Escolha um mini game divertido para jogar antes de explorar as ofertas.</p>
       <div class="arcade-layout">
         <aside class="arcade-menu card">
@@ -52,6 +56,7 @@
         </div>
       </div>
     </section>
+  </main>
 
   <button id="a11y-toggle" class="a11y-toggle" type="button" aria-controls="a11y-panel" aria-expanded="false">
     Acessibilidade
@@ -87,10 +92,6 @@
   </section>
 
   <script src="accessibility.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-  <script src="storage.js"></script>
   <script src="game-hub.js"></script>
-  <script src="site.js"></script>
 </body>
 </html>

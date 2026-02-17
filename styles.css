@@ -161,6 +161,14 @@ main section + section {
   margin-bottom: 2rem;
 }
 
+.home-title-center {
+  text-align: center;
+}
+
+#jogos .subtitle {
+  text-align: center;
+}
+
 .arcade-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
