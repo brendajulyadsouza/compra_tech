@@ -35,6 +35,31 @@
   </header>
 
   <main id="vitrine" class="container">
+    <section class="game-section">
+      <h2>Jogo rapido: cace o carrinho</h2>
+      <p class="subtitle">Clique no carrinho em movimento para marcar pontos antes do tempo acabar.</p>
+      <div class="game-panel">
+        <div class="game-stats">
+          <span>Pontos: <strong id="game-score">0</strong></span>
+          <span>Tempo: <strong id="game-time">20</strong>s</span>
+        </div>
+        <div id="game-area" class="game-area" aria-label="Area do jogo">
+          <button id="game-target" class="game-target" type="button" aria-label="Carrinho alvo">🛒</button>
+        </div>
+        <div class="game-actions">
+          <button id="game-start" class="btn-primary" type="button">Iniciar jogo</button>
+          <p id="game-message" class="empty-state">Clique em iniciar para jogar.</p>
+        </div>
+        <div class="game-ranking">
+          <div class="game-ranking__head">
+            <h3>Ranking local (Top 5)</h3>
+            <button id="game-clear-ranking" class="btn-secondary" type="button">Limpar ranking</button>
+          </div>
+          <ol id="game-ranking-list" class="game-ranking__list"></ol>
+        </div>
+      </div>
+    </section>
+
     <section id="mercado-livre">
       <h2>Mercado Livre</h2>
       <div id="ml-products-grid" class="products-grid"></div>
@@ -85,6 +110,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="storage.js"></script>
+  <script src="game.js"></script>
   <script src="site.js"></script>
 </body>
 </html>
