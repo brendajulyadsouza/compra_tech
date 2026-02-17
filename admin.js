@@ -96,6 +96,15 @@ function isLikelyIconUrl(urlValue) {
   );
 }
 
+function isMercadoLivreLink(value) {
+  try {
+    const host = new URL(normalizeUrl(value)).hostname.toLowerCase();
+    return host.includes("mercadolivre") || host.includes("mercadolibre");
+  } catch {
+    return false;
+  }
+}
+
 function previewScreenshotFromLink(link) {
   const normalized = normalizeUrl(link);
   if (!normalized) return "";
@@ -200,13 +209,6 @@ async function fetchLinkPreviewData(link) {
 }
 
 async function fetchProductDataFromLink(link) {
-  const isShein = /shein/i.test(link);
-
-  if (isShein) {
-    const previewShein = await fetchLinkPreviewData(link);
-    if (previewShein) return previewShein;
-  }
-
   let itemId = extractItemId(link);
   if (!itemId) {
     const resolvedUrl = await tryResolveFinalUrl(link);
@@ -309,6 +311,10 @@ async function fillByAffiliateLink() {
     setStatus("Informe um link valido (http/https).", true);
     return;
   }
+  if (!isMercadoLivreLink(link)) {
+    setStatus("Use apenas link de afiliacao do Mercado Livre.", true);
+    return;
+  }
 
   setStatus("Buscando dados do produto...");
   try {
@@ -364,6 +370,7 @@ form.addEventListener("submit", async (event) => {
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
   if (!isValidUrl(affiliateLink)) return setStatus("Informe um link valido (http/https).", true);
+  if (!isMercadoLivreLink(affiliateLink)) return setStatus("Use apenas link de afiliacao do Mercado Livre.", true);
 
   if (!title) {
     try {

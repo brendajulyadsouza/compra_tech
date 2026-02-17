@@ -1,5 +1,10 @@
 const sheinGrid = document.getElementById("shein-only-grid");
 const sheinEmpty = document.getElementById("shein-only-empty");
+const FALLBACK_PRODUCT_IMAGE =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a5b78"/><stop offset="100%" stop-color="#1f355c"/></linearGradient></defs><rect width="800" height="800" fill="url(#g)"/><text x="400" y="420" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="42">Imagem indisponivel</text></svg>'
+  );
 
 function normalizeAffiliateUrl(value) {
   if (!value) return "";
@@ -65,6 +70,12 @@ function buildPreviewImageFromLink(link) {
   return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
 }
 
+function buildScreenshotImageFromLink(link) {
+  const normalized = normalizeAffiliateUrl(link);
+  if (!normalized) return "";
+  return `https://s.wordpress.com/mshots/v1/${encodeURIComponent(normalized)}?w=900`;
+}
+
 function toProxyImageUrl(urlValue) {
   const normalized = normalizeAffiliateUrl(urlValue);
   if (!normalized) return "";
@@ -85,7 +96,9 @@ function pickProductImage(product) {
 
 function applyImageFallbacks(img, sources) {
   let idx = 0;
+  let settled = false;
   const next = () => {
+    if (settled) return;
     while (idx < sources.length) {
       const src = sources[idx++];
       if (src) {
@@ -93,8 +106,12 @@ function applyImageFallbacks(img, sources) {
         return;
       }
     }
-    img.src = "https://via.placeholder.com/800x800?text=Produto";
+    settled = true;
+    img.src = FALLBACK_PRODUCT_IMAGE;
   };
+  img.addEventListener("load", () => {
+    if (img.naturalWidth < 48 || img.naturalHeight < 48) next();
+  });
   img.addEventListener("error", next);
   next();
 }
@@ -125,9 +142,14 @@ function render(products) {
     const image = document.createElement("img");
     image.referrerPolicy = "no-referrer";
     image.alt = product.title || "Produto";
+    const rawImage = normalizeAffiliateUrl(product.image);
+    const finalImage = pickProductImage(product);
     applyImageFallbacks(image, [
-      toProxyImageUrl(pickProductImage(product)),
-      pickProductImage(product),
+      toProxyImageUrl(finalImage),
+      finalImage,
+      toProxyImageUrl(rawImage),
+      rawImage,
+      buildScreenshotImageFromLink(product.affiliate_link),
       buildPreviewImageFromLink(product.affiliate_link),
     ]);
     card.appendChild(image);
