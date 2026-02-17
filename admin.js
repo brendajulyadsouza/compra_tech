@@ -46,15 +46,129 @@ function isValidUrl(value) {
   }
 }
 
-async function api(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || "Erro na requisicao.");
-  return payload;
+function decodeDeep(value, rounds = 3) {
+  let current = String(value);
+  for (let i = 0; i < rounds; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+  return current;
+}
+
+function findItemIdInText(text) {
+  const match = String(text).match(/\b(ML[A-Z]{1,3}\d{6,})\b/i);
+  return match?.[1]?.toUpperCase() || null;
+}
+
+function extractItemId(url) {
+  const candidates = [String(url), decodeDeep(url)];
+
+  for (const candidate of candidates) {
+    const direct = findItemIdInText(candidate);
+    if (direct) return direct;
+
+    try {
+      const parsed = new URL(candidate);
+      const pieces = [parsed.pathname, parsed.hash];
+
+      for (const piece of pieces) {
+        const found = findItemIdInText(decodeDeep(piece));
+        if (found) return found;
+      }
+
+      for (const [, value] of parsed.searchParams.entries()) {
+        const found = findItemIdInText(decodeDeep(value));
+        if (found) return found;
+      }
+    } catch {
+      // Ignore parse errors and continue with other candidates.
+    }
+  }
+
+  return null;
+}
+
+async function tryResolveFinalUrl(link) {
+  try {
+    const response = await fetch(link, { redirect: "follow" });
+    if (response?.url) return response.url;
+  } catch {
+    // Some affiliate domains block CORS in browser; fallback to original link.
+  }
+  return link;
+}
+
+function buildTitleFromUrl(link) {
+  try {
+    const parsed = new URL(link);
+    const lastPath = parsed.pathname.split("/").filter(Boolean).pop() || "";
+    const decoded = decodeDeep(lastPath)
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (decoded) return decoded.slice(0, 100);
+    return `Produto de ${parsed.hostname}`;
+  } catch {
+    return "Produto afiliado";
+  }
+}
+
+async function fetchLinkPreviewData(link) {
+  try {
+    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(link)}`;
+    const response = await fetch(endpoint);
+    if (!response.ok) return null;
+    const result = await response.json();
+    const data = result?.data;
+    if (!data) return null;
+    return {
+      title: data.title || "",
+      price: "",
+      image: data.image?.url || data.logo?.url || "",
+      description: data.description || "",
+      source: "preview",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchProductDataFromLink(link) {
+  let itemId = extractItemId(link);
+  if (!itemId) {
+    const resolvedUrl = await tryResolveFinalUrl(link);
+    itemId = extractItemId(resolvedUrl);
+  }
+
+  if (itemId) {
+    const response = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        title: data.title || "",
+        price: data.price || "",
+        image: data.thumbnail || "",
+        description: data.warranty || "",
+        source: "meli_api",
+      };
+    }
+  }
+
+  const preview = await fetchLinkPreviewData(link);
+  if (preview) return preview;
+
+  return {
+    title: buildTitleFromUrl(link),
+    price: "",
+    image: "",
+    description: "",
+    source: "fallback",
+  };
 }
 
 function showAdmin() {
@@ -68,8 +182,13 @@ function showLogin() {
 }
 
 async function loadProducts() {
-  const payload = await api("/api/products", { method: "GET" });
-  return Array.isArray(payload.products) ? payload.products : [];
+  const client = window.supabaseClient;
+  const { data, error } = await client
+    .from("products")
+    .select("id, affiliate_link, title, price, image, description, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
 }
 
 async function renderAdminProducts() {
@@ -80,6 +199,7 @@ async function renderAdminProducts() {
     adminEmptyState.style.display = "block";
     return;
   }
+
   adminEmptyState.style.display = "none";
 
   for (const product of products) {
@@ -95,16 +215,17 @@ async function renderAdminProducts() {
     adminProductsList.appendChild(row);
   }
 
-  const buttons = adminProductsList.querySelectorAll("[data-product-id]");
-  buttons.forEach((button) => {
+  adminProductsList.querySelectorAll("[data-product-id]").forEach((button) => {
     button.addEventListener("click", async () => {
       try {
+        const client = window.supabaseClient;
         const id = button.getAttribute("data-product-id");
-        await api(`/api/products/${id}`, { method: "DELETE" });
+        const { error } = await client.from("products").delete().eq("id", id);
+        if (error) throw error;
         await renderAdminProducts();
         setStatus("Produto removido.");
       } catch (error) {
-        setStatus(error.message, true);
+        setStatus(error.message || "Falha ao remover produto.", true);
       }
     });
   });
@@ -123,11 +244,7 @@ async function fillByAffiliateLink() {
 
   setStatus("Buscando dados do produto...");
   try {
-    const payload = await api("/api/products/resolve-link", {
-      method: "POST",
-      body: JSON.stringify({ link }),
-    });
-    const data = payload.data || {};
+    const data = await fetchProductDataFromLink(link);
     inputTitle.value = data.title || "";
     inputPrice.value = data.price || "";
     inputImage.value = data.image || "";
@@ -141,10 +258,12 @@ async function fillByAffiliateLink() {
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await api("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username: loginUser.value.trim(), password: loginPass.value }),
+    const client = window.supabaseClient;
+    const { error } = await client.auth.signInWithPassword({
+      email: loginUser.value.trim(),
+      password: loginPass.value,
     });
+    if (error) throw error;
     loginForm.reset();
     setLoginStatus("Acesso liberado.");
     showAdmin();
@@ -155,17 +274,15 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", async () => {
-  try {
-    await api("/api/auth/logout", { method: "POST" });
-  } catch {
-    // ignore
-  }
+  const client = window.supabaseClient;
+  await client.auth.signOut();
   showLogin();
   setLoginStatus("Sessao encerrada.");
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+
   const affiliateLink = inputAffiliateLink.value.trim();
   let title = inputTitle.value.trim();
   let price = inputPrice.value;
@@ -177,33 +294,28 @@ form.addEventListener("submit", async (event) => {
 
   if (!title) {
     try {
-      const payload = await api("/api/products/resolve-link", {
-        method: "POST",
-        body: JSON.stringify({ link: affiliateLink }),
-      });
-      const data = payload.data || {};
+      const data = await fetchProductDataFromLink(affiliateLink);
       title = data.title || "";
       price = price || data.price || "";
       image = image || data.image || "";
       description = description || data.description || "";
     } catch {
-      // continue and validate title below
+      // fallback
     }
   }
   if (!title) return setStatus("Titulo e obrigatorio.", true);
   if (image && !isValidUrl(image)) return setStatus("URL da imagem invalida.", true);
 
   try {
-    await api("/api/products", {
-      method: "POST",
-      body: JSON.stringify({
-        affiliateLink,
-        title,
-        price: price === "" ? null : Number(price),
-        image,
-        description,
-      }),
+    const client = window.supabaseClient;
+    const { error } = await client.from("products").insert({
+      affiliate_link: affiliateLink,
+      title,
+      price: price === "" ? null : Number(price),
+      image,
+      description,
     });
+    if (error) throw error;
     form.reset();
     await renderAdminProducts();
     setStatus("Produto salvo e publicado na vitrine.");
@@ -216,12 +328,19 @@ autoFillBtn.addEventListener("click", fillByAffiliateLink);
 
 async function initAuth() {
   try {
-    await api("/api/auth/me", { method: "GET" });
-    showAdmin();
-    await renderAdminProducts();
+    const client = window.supabaseClient;
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    if (data?.session) {
+      showAdmin();
+      await renderAdminProducts();
+      return;
+    }
+    showLogin();
+    setLoginStatus("Use seu email e senha de admin.");
   } catch {
     showLogin();
-    setLoginStatus("Use seu acesso de administrador.");
+    setLoginStatus("Use seu email e senha de admin.");
   }
 }
 

@@ -1,25 +1,27 @@
-# CompraTech - Vitrine compartilhada entre dispositivos
+# CompraTech com Supabase (sem servidor proprio)
 
-## Como funciona agora
+## 1) Configurar Supabase
 
-- O cadastro no `admin.html` salva no banco SQLite.
-- A `index.html` carrega os produtos da API.
-- Resultado: os produtos aparecem para todos os dispositivos.
+1. Crie um projeto no Supabase.
+2. Abra `SQL Editor` e rode `supabase-setup.sql`.
+3. Em `Authentication > Users`, crie o usuario admin (email/senha).
+4. Em `Project Settings > API`, copie:
+   - Project URL
+   - anon public key
 
-## Rodar local
+## 2) Configurar o front
 
-1. `npm install`
-2. `npm start`
-3. Abra `http://localhost:3000`
+1. Abra `supabase-config.js`.
+2. Preencha:
+   - `window.SUPABASE_URL`
+   - `window.SUPABASE_ANON_KEY`
 
-## Login admin
+## 3) Publicar
 
-- Usuario e senha estao no arquivo `.env`:
-  - `ADMIN_USER`
-  - `ADMIN_PASS`
+Publique no Vercel normalmente.
 
-## Arquivos principais
+## Como funciona
 
-- `server.js` (API + auth + SQLite)
-- `admin.js` (painel integrado com API)
-- `site.js` (vitrine integrada com API)
+- `index.html` le os produtos da tabela `products`.
+- `admin.html` faz login com Supabase Auth e cadastra/remove produtos.
+- Tudo sincroniza para todos os dispositivos.

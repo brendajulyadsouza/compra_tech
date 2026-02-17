@@ -10,10 +10,16 @@ function safeUrl(value) {
 }
 
 async function fetchProducts() {
-  const response = await fetch("/api/products");
-  if (!response.ok) throw new Error("Falha ao carregar produtos.");
-  const payload = await response.json();
-  return Array.isArray(payload.products) ? payload.products : [];
+  const client = window.supabaseClient;
+  if (!client) throw new Error("Supabase nao configurado.");
+
+  const { data, error } = await client
+    .from("products")
+    .select("id, affiliate_link, title, price, image, description, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
 }
 
 function renderProducts(products) {
@@ -60,7 +66,7 @@ function renderProducts(products) {
     link.className = "btn-buy";
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.href = safeUrl(product.affiliateLink) || "#";
+    link.href = safeUrl(product.affiliate_link) || "#";
     link.textContent = "Ver no Mercado Livre";
     content.appendChild(link);
 
