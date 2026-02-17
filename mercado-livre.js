@@ -1,9 +1,34 @@
 const mlGrid = document.getElementById("ml-only-grid");
 const mlEmpty = document.getElementById("ml-only-empty");
 
-function safeUrl(value) {
+function normalizeAffiliateUrl(value) {
+  if (!value) return "";
+  let raw = String(value).trim();
+
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(raw);
+      if (decoded === raw) break;
+      raw = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  if (raw.startsWith("www.")) raw = `https://${raw}`;
+  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+
   try {
-    return new URL(value).toString();
+    let parsed = new URL(raw);
+    const redirectKeys = ["url", "target", "redirect", "redirect_url", "to", "link"];
+    for (const key of redirectKeys) {
+      const candidate = parsed.searchParams.get(key);
+      if (candidate && /^https?:\/\//i.test(candidate)) {
+        parsed = new URL(candidate);
+        break;
+      }
+    }
+    return parsed.toString();
   } catch {
     return "";
   }
@@ -11,7 +36,7 @@ function safeUrl(value) {
 
 function isMercadoLivreLink(value) {
   try {
-    const host = new URL(value).hostname.toLowerCase();
+    const host = new URL(normalizeAffiliateUrl(value)).hostname.toLowerCase();
     return host.includes("mercadolivre") || host.includes("mercadolibre");
   } catch {
     return false;
@@ -42,7 +67,7 @@ function render(products) {
     card.className = "product-card";
 
     const image = document.createElement("img");
-    image.src = safeUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
+    image.src = normalizeAffiliateUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
     image.alt = product.title || "Produto";
     card.appendChild(image);
 
@@ -71,7 +96,7 @@ function render(products) {
     link.className = "btn-buy";
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.href = safeUrl(product.affiliate_link) || "#";
+    link.href = normalizeAffiliateUrl(product.affiliate_link) || "#";
     link.textContent = "Ver oferta Mercado Livre";
     content.appendChild(link);
 

@@ -3,9 +3,34 @@ const mlEmptyState = document.getElementById("ml-empty-state");
 const sheinGrid = document.getElementById("shein-products-grid");
 const sheinEmptyState = document.getElementById("shein-empty-state");
 
-function safeUrl(value) {
+function normalizeAffiliateUrl(value) {
+  if (!value) return "";
+  let raw = String(value).trim();
+
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(raw);
+      if (decoded === raw) break;
+      raw = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  if (raw.startsWith("www.")) raw = `https://${raw}`;
+  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+
   try {
-    return new URL(value).toString();
+    let parsed = new URL(raw);
+    const redirectKeys = ["url", "target", "redirect", "redirect_url", "to", "link"];
+    for (const key of redirectKeys) {
+      const candidate = parsed.searchParams.get(key);
+      if (candidate && /^https?:\/\//i.test(candidate)) {
+        parsed = new URL(candidate);
+        break;
+      }
+    }
+    return parsed.toString();
   } catch {
     return "";
   }
@@ -13,7 +38,7 @@ function safeUrl(value) {
 
 function detectStore(urlValue) {
   try {
-    const host = new URL(urlValue).hostname.toLowerCase();
+    const host = new URL(normalizeAffiliateUrl(urlValue)).hostname.toLowerCase();
     if (host.includes("shein")) return "Shein";
     if (host.includes("mercadolivre") || host.includes("mercadolibre")) return "Mercado Livre";
     return "Outros";
@@ -36,11 +61,11 @@ async function fetchProducts() {
 }
 
 function createProductCard(product) {
-  const card = document.createElement("article");
+    const card = document.createElement("article");
   card.className = "product-card";
 
-  const image = document.createElement("img");
-  image.src = safeUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
+    const image = document.createElement("img");
+    image.src = normalizeAffiliateUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
   image.alt = product.title || "Produto";
   card.appendChild(image);
 
@@ -74,10 +99,10 @@ function createProductCard(product) {
   }
 
   const link = document.createElement("a");
-  link.className = "btn-buy";
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.href = safeUrl(product.affiliate_link) || "#";
+    link.className = "btn-buy";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.href = normalizeAffiliateUrl(product.affiliate_link) || "#";
   link.textContent = "Ver oferta";
   content.appendChild(link);
 
