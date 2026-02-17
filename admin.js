@@ -46,6 +46,53 @@ function isValidUrl(value) {
   }
 }
 
+function normalizeUrl(value) {
+  if (!value) return "";
+  let raw = String(value).trim();
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(raw);
+      if (decoded === raw) break;
+      raw = decoded;
+    } catch {
+      break;
+    }
+  }
+  if (raw.startsWith("www.")) raw = `https://${raw}`;
+  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+  try {
+    let parsed = new URL(raw);
+    const redirectKeys = ["url", "target", "redirect", "redirect_url", "to", "link"];
+    for (const key of redirectKeys) {
+      const candidate = parsed.searchParams.get(key);
+      if (candidate && /^https?:\/\//i.test(candidate)) {
+        parsed = new URL(candidate);
+        break;
+      }
+    }
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function isLikelyIconUrl(urlValue) {
+  const value = String(urlValue || "").toLowerCase();
+  return (
+    value.includes("logo") ||
+    value.includes("favicon") ||
+    value.includes("icon") ||
+    value.includes("apple-touch") ||
+    value.endsWith(".ico")
+  );
+}
+
+function previewScreenshotFromLink(link) {
+  const normalized = normalizeUrl(link);
+  if (!normalized) return "";
+  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false`;
+}
+
 function decodeDeep(value, rounds = 3) {
   let current = String(value);
   for (let i = 0; i < rounds; i += 1) {
@@ -120,16 +167,21 @@ function buildTitleFromUrl(link) {
 
 async function fetchLinkPreviewData(link) {
   try {
-    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(link)}`;
+    const normalized = normalizeUrl(link) || link;
+    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(normalized)}`;
     const response = await fetch(endpoint);
     if (!response.ok) return null;
     const result = await response.json();
     const data = result?.data;
     if (!data) return null;
+    const imageCandidate = normalizeUrl(data.image?.url || data.logo?.url || "");
+    const image = imageCandidate && !isLikelyIconUrl(imageCandidate)
+      ? imageCandidate
+      : previewScreenshotFromLink(normalized);
     return {
       title: data.title || "",
       price: "",
-      image: data.image?.url || data.logo?.url || "",
+      image,
       description: data.description || "",
       source: "preview",
     };
@@ -254,7 +306,7 @@ async function fillByAffiliateLink() {
     const data = await fetchProductDataFromLink(link);
     inputTitle.value = data.title || "";
     inputPrice.value = data.price || "";
-    inputImage.value = data.image || "";
+    inputImage.value = normalizeUrl(data.image) || previewScreenshotFromLink(link) || "";
     inputDescription.value = data.description || "";
     setStatus(data.source === "meli_api" ? "Dados preenchidos automaticamente." : "Preenchimento parcial aplicado.");
   } catch (error) {
@@ -293,7 +345,7 @@ form.addEventListener("submit", async (event) => {
   const affiliateLink = inputAffiliateLink.value.trim();
   let title = inputTitle.value.trim();
   let price = inputPrice.value;
-  let image = inputImage.value.trim();
+  let image = normalizeUrl(inputImage.value.trim());
   let description = inputDescription.value.trim();
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
@@ -311,12 +363,13 @@ form.addEventListener("submit", async (event) => {
     }
   }
   if (!title) return setStatus("Titulo e obrigatorio.", true);
+  if (!image) image = previewScreenshotFromLink(affiliateLink);
   if (image && !isValidUrl(image)) return setStatus("URL da imagem invalida.", true);
 
   try {
     const client = window.supabaseClient;
     const { error } = await client.from("products").insert({
-      affiliate_link: affiliateLink,
+      affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
       title,
       price: price === "" ? null : Number(price),
       image,

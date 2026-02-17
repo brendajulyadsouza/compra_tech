@@ -42,6 +42,29 @@ function isSheinLink(value) {
   }
 }
 
+function isLikelyIconUrl(urlValue) {
+  const value = String(urlValue || "").toLowerCase();
+  return (
+    value.includes("logo") ||
+    value.includes("favicon") ||
+    value.includes("icon") ||
+    value.includes("apple-touch") ||
+    value.endsWith(".ico")
+  );
+}
+
+function buildPreviewImageFromLink(link) {
+  const normalized = normalizeAffiliateUrl(link);
+  if (!normalized) return "";
+  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=true&meta=false`;
+}
+
+function pickProductImage(product) {
+  const imageUrl = normalizeAffiliateUrl(product.image);
+  if (imageUrl && !isLikelyIconUrl(imageUrl)) return imageUrl;
+  return buildPreviewImageFromLink(product.affiliate_link);
+}
+
 async function fetchProducts() {
   const client = window.supabaseClient;
   if (!client) throw new Error("Supabase nao configurado.");
@@ -66,8 +89,16 @@ function render(products) {
     card.className = "product-card";
 
     const image = document.createElement("img");
-    image.src = normalizeAffiliateUrl(product.image) || "https://via.placeholder.com/800x800?text=Produto";
+    image.src = pickProductImage(product) || "https://via.placeholder.com/800x800?text=Produto";
     image.alt = product.title || "Produto";
+    image.addEventListener("error", () => {
+      const fallback = buildPreviewImageFromLink(product.affiliate_link);
+      if (fallback && image.src !== fallback) {
+        image.src = fallback;
+        return;
+      }
+      image.src = "https://via.placeholder.com/800x800?text=Produto";
+    });
     card.appendChild(image);
 
     const content = document.createElement("div");
