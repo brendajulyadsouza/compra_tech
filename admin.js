@@ -139,6 +139,13 @@ async function fetchLinkPreviewData(link) {
 }
 
 async function fetchProductDataFromLink(link) {
+  const isShein = /shein/i.test(link);
+
+  if (isShein) {
+    const previewShein = await fetchLinkPreviewData(link);
+    if (previewShein) return previewShein;
+  }
+
   let itemId = extractItemId(link);
   if (!itemId) {
     const resolvedUrl = await tryResolveFinalUrl(link);

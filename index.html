@@ -11,16 +11,26 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <img src="logo.png" alt="CompraTech" class="brand__logo">
+        <span>CompraTech</span>
+      </div>
+      <a class="admin-link" href="admin.html">Painel ADM</a>
+    </div>
+  </div>
+
   <header class="hero">
     <div class="hero__content">
-      <p class="tag">Produtos selecionados</p>
-      <h1>Ofertas de Afiliado Mercado Livre</h1>
-      <p class="subtitle">Atualizado pelo painel ADM com seus links de afiliação.</p>
-      <a class="admin-link" href="admin.html">Ir para área ADM</a>
+      <p class="tag">Afiliados em destaque</p>
+      <h1>Ofertas de tecnologia, casa e moda</h1>
+      <p class="subtitle">Catalogo de links de afiliacao de lojas como Mercado Livre e Shein.</p>
+      <a class="btn-primary hero-cta" href="#vitrine">Ver vitrine</a>
     </div>
   </header>
 
-  <main class="container">
+  <main id="vitrine" class="container">
     <section>
       <h2>Produtos em destaque</h2>
       <div id="products-grid" class="products-grid"></div>

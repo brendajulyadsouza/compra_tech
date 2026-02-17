@@ -9,6 +9,19 @@ function safeUrl(value) {
   }
 }
 
+function detectStore(urlValue) {
+  try {
+    const host = new URL(urlValue).hostname.toLowerCase();
+    if (host.includes("shein")) return "Shein";
+    if (host.includes("mercadolivre") || host.includes("mercadolibre")) return "Mercado Livre";
+    if (host.includes("amazon")) return "Amazon";
+    if (host.includes("magazineluiza") || host.includes("magalu")) return "Magalu";
+    return "Marketplace";
+  } catch {
+    return "Marketplace";
+  }
+}
+
 async function fetchProducts() {
   const client = window.supabaseClient;
   if (!client) throw new Error("Supabase nao configurado.");
@@ -44,6 +57,14 @@ function renderProducts(products) {
     const content = document.createElement("div");
     content.className = "product-card__content";
 
+    const meta = document.createElement("div");
+    meta.className = "product-card__meta";
+    const chip = document.createElement("span");
+    chip.className = "store-chip";
+    chip.textContent = detectStore(product.affiliate_link);
+    meta.appendChild(chip);
+    content.appendChild(meta);
+
     const title = document.createElement("h3");
     title.textContent = product.title || "Produto sem titulo";
     content.appendChild(title);
@@ -67,7 +88,7 @@ function renderProducts(products) {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.href = safeUrl(product.affiliate_link) || "#";
-    link.textContent = "Ver no Mercado Livre";
+    link.textContent = "Ver oferta";
     content.appendChild(link);
 
     card.appendChild(content);

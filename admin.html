@@ -15,7 +15,7 @@
     <section class="card auth-card">
       <a class="back-link" href="index.html">Voltar para vitrine</a>
       <h1>Acesso Admin</h1>
-      <p class="subtitle">Entre para gerenciar os produtos.</p>
+      <p class="subtitle">Entre para gerenciar produtos afiliados.</p>
       <form id="login-form" class="form">
         <label>
           Email admin
@@ -32,21 +32,26 @@
   </section>
 
   <div id="admin-app" hidden>
-    <header class="admin-header">
-      <h1>Painel ADM</h1>
-      <div class="admin-actions">
-        <a class="back-link" href="index.html">Voltar para vitrine</a>
-        <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
+    <div class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <img src="logo.png" alt="CompraTech" class="brand__logo">
+          <span>Painel CompraTech</span>
+        </div>
+        <div class="admin-actions">
+          <a class="back-link" href="index.html">Vitrine</a>
+          <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
+        </div>
       </div>
-    </header>
+    </div>
 
     <main class="container admin-layout">
       <section class="card">
         <h2>Novo produto</h2>
         <form id="product-form" class="form">
           <label>
-            Link de afiliacao Mercado Livre
-            <input id="affiliate-link" type="url" required placeholder="https://mercadolivre...">
+            Link de afiliacao (Mercado Livre, Shein, etc)
+            <input id="affiliate-link" type="url" required placeholder="https://...">
           </label>
           <button id="auto-fill-btn" type="button" class="btn-secondary">Preencher automatico pelo link</button>
 
@@ -66,7 +71,6 @@
             Descricao
             <textarea id="description" rows="3"></textarea>
           </label>
-
           <button class="btn-primary" type="submit">Salvar produto</button>
         </form>
         <p id="status-message" class="status-message"></p>
