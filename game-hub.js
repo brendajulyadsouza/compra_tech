@@ -148,6 +148,14 @@ function mountReflex() {
     const speedScore = Math.max(1, Math.round(config.speedBonus - reactionMs / 90));
     score += 1 + speedScore;
     scoreEl.textContent = String(score);
+
+    const currentBest = bestScores[levelKey] || 0;
+    if (score > currentBest) {
+      bestScores[levelKey] = score;
+      saveBestScores(bestScores);
+      updateBestView();
+    }
+
     move();
   });
 
