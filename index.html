@@ -35,27 +35,20 @@
   </header>
 
   <main id="vitrine" class="container">
-    <section class="game-section">
-      <h2>Jogo rapido: cace o carrinho</h2>
-      <p class="subtitle">Clique no carrinho em movimento para marcar pontos antes do tempo acabar.</p>
-      <div class="game-panel">
-        <div class="game-stats">
-          <span>Pontos: <strong id="game-score">0</strong></span>
-          <span>Tempo: <strong id="game-time">20</strong>s</span>
-        </div>
-        <div id="game-area" class="game-area" aria-label="Area do jogo">
-          <button id="game-target" class="game-target" type="button" aria-label="Carrinho alvo">🛒</button>
-        </div>
-        <div class="game-actions">
-          <button id="game-start" class="btn-primary" type="button">Iniciar jogo</button>
-          <p id="game-message" class="empty-state">Clique em iniciar para jogar.</p>
-        </div>
-        <div class="game-ranking">
-          <div class="game-ranking__head">
-            <h3>Ranking local (Top 5)</h3>
-            <button id="game-clear-ranking" class="btn-secondary" type="button">Limpar ranking</button>
-          </div>
-          <ol id="game-ranking-list" class="game-ranking__list"></ol>
+    <section class="arcade-section" id="jogos">
+      <h2>Game Lounge CompraTech</h2>
+      <p class="subtitle">Escolha um mini game divertido para jogar antes de explorar as ofertas.</p>
+      <div class="arcade-layout">
+        <aside class="arcade-menu card">
+          <button class="arcade-game-btn is-active" data-game="reflex">Reflexo Turbo</button>
+          <button class="arcade-game-btn" data-game="guess">Adivinhe o Numero</button>
+          <button class="arcade-game-btn" data-game="memory">Memoria Flash</button>
+        </aside>
+        <div class="arcade-stage card">
+          <h3 id="arcade-title">Reflexo Turbo</h3>
+          <p id="arcade-description" class="subtitle">Clique no alvo o maximo que conseguir em 20 segundos.</p>
+          <div id="arcade-canvas" class="arcade-canvas"></div>
+          <p id="arcade-status" class="empty-state"></p>
         </div>
       </div>
     </section>
@@ -110,7 +103,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="storage.js"></script>
-  <script src="game.js"></script>
+  <script src="game-hub.js"></script>
   <script src="site.js"></script>
 </body>
 </html>

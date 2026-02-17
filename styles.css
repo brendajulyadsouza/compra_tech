@@ -157,6 +157,120 @@ main section + section {
   margin-top: 2rem;
 }
 
+.arcade-section {
+  margin-bottom: 2rem;
+}
+
+.arcade-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+}
+
+.arcade-menu {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.arcade-game-btn {
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  border-radius: 11px;
+  padding: 0.8rem 0.9rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arcade-game-btn.is-active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  border-color: transparent;
+}
+
+.arcade-stage h3 {
+  margin: 0;
+}
+
+.arcade-canvas {
+  margin-top: 0.6rem;
+  min-height: 260px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 30%),
+    linear-gradient(145deg, var(--surface-alt), color-mix(in srgb, var(--surface) 80%, #fff));
+  padding: 0.8rem;
+}
+
+.arcade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.arcade-target {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 1.5rem;
+  position: absolute;
+}
+
+.arcade-playfield {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 70%, #fff);
+  overflow: hidden;
+  margin-top: 0.6rem;
+}
+
+.arcade-input {
+  max-width: 220px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+}
+
+.memory-grid {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(90px, 1fr));
+  gap: 0.7rem;
+  max-width: 280px;
+}
+
+.memory-pad {
+  height: 78px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.memory-pad.active {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+.pad-0 { background: #ef4444; }
+.pad-1 { background: #22c55e; }
+.pad-2 { background: #3b82f6; }
+.pad-3 { background: #f59e0b; }
+
 .game-section {
   margin-bottom: 2rem;
 }
@@ -562,5 +676,9 @@ h2 {
 
   .game-area {
     height: 220px;
+  }
+
+  .arcade-layout {
+    grid-template-columns: 1fr;
   }
 }
