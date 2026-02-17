@@ -13,13 +13,41 @@ function setActive(gameKey) {
 }
 
 function mountReflex() {
+  const REFLEX_BEST_KEY = "compratech_reflex_best_v1";
+  const LEVELS = {
+    easy: { label: "Facil", moveMs: 900, size: 64, duration: 20, speedBonus: 16 },
+    medium: { label: "Medio", moveMs: 650, size: 56, duration: 20, speedBonus: 22 },
+    hard: { label: "Dificil", moveMs: 450, size: 46, duration: 20, speedBonus: 30 },
+  };
+
+  function loadBestScores() {
+    try {
+      const raw = localStorage.getItem(REFLEX_BEST_KEY);
+      const parsed = JSON.parse(raw || "{}");
+      return typeof parsed === "object" && parsed ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveBestScores(data) {
+    localStorage.setItem(REFLEX_BEST_KEY, JSON.stringify(data));
+  }
+
   arcadeTitle.textContent = "Reflexo Turbo";
-  arcadeDescription.textContent = "Clique no alvo o maximo que conseguir em 20 segundos.";
+  arcadeDescription.textContent = "Escolha a dificuldade e clique no alvo o mais rapido possivel.";
   arcadeCanvas.innerHTML = `
     <div class="arcade-row">
+      <label for="reflex-level">Dificuldade:</label>
+      <select id="reflex-level" class="arcade-select">
+        <option value="easy">Facil</option>
+        <option value="medium" selected>Medio</option>
+        <option value="hard">Dificil</option>
+      </select>
       <button class="btn-primary" id="reflex-start" type="button">Iniciar</button>
       <span>Pontos: <strong id="reflex-score">0</strong></span>
       <span>Tempo: <strong id="reflex-time">20</strong>s</span>
+      <span>Recorde: <strong id="reflex-best">0</strong></span>
     </div>
     <div class="arcade-playfield" id="reflex-field">
       <button class="arcade-target" id="reflex-target" type="button">🎯</button>
@@ -28,22 +56,41 @@ function mountReflex() {
   arcadeStatus.textContent = "Clique em iniciar.";
 
   const startBtn = document.getElementById("reflex-start");
+  const levelSelect = document.getElementById("reflex-level");
   const scoreEl = document.getElementById("reflex-score");
   const timeEl = document.getElementById("reflex-time");
+  const bestEl = document.getElementById("reflex-best");
   const field = document.getElementById("reflex-field");
   const target = document.getElementById("reflex-target");
 
+  let levelKey = "medium";
+  let config = LEVELS[levelKey];
+  let bestScores = loadBestScores();
   let running = false;
   let score = 0;
-  let time = 20;
+  let time = config.duration;
   let moveId = null;
   let timerId = null;
+  let lastSpawnAt = 0;
+
+  const updateBestView = () => {
+    bestEl.textContent = String(bestScores[levelKey] || 0);
+  };
+
+  const applyLevelVisual = () => {
+    const size = config.size;
+    target.style.width = `${size}px`;
+    target.style.height = `${size}px`;
+    timeEl.textContent = String(config.duration);
+    updateBestView();
+  };
 
   const move = () => {
     const maxX = Math.max(0, field.clientWidth - target.offsetWidth - 8);
     const maxY = Math.max(0, field.clientHeight - target.offsetHeight - 8);
     target.style.left = `${Math.floor(Math.random() * maxX)}px`;
     target.style.top = `${Math.floor(Math.random() * maxY)}px`;
+    lastSpawnAt = performance.now();
   };
 
   const stop = () => {
@@ -51,20 +98,43 @@ function mountReflex() {
     clearInterval(moveId);
     clearInterval(timerId);
     startBtn.disabled = false;
-    arcadeStatus.textContent = `Fim de jogo: ${score} ponto(s).`;
+    levelSelect.disabled = false;
+
+    const currentBest = bestScores[levelKey] || 0;
+    if (score > currentBest) {
+      bestScores[levelKey] = score;
+      saveBestScores(bestScores);
+      updateBestView();
+      arcadeStatus.textContent = `Novo recorde no ${config.label}: ${score} ponto(s)!`;
+      return;
+    }
+
+    arcadeStatus.textContent = `Fim de jogo (${config.label}): ${score} ponto(s).`;
   };
+
+  levelSelect.addEventListener("change", () => {
+    if (running) return;
+    levelKey = levelSelect.value in LEVELS ? levelSelect.value : "medium";
+    config = LEVELS[levelKey];
+    applyLevelVisual();
+    arcadeStatus.textContent = `Dificuldade ${config.label} selecionada.`;
+  });
 
   startBtn.addEventListener("click", () => {
     if (running) return;
     running = true;
+    levelKey = levelSelect.value in LEVELS ? levelSelect.value : "medium";
+    config = LEVELS[levelKey];
     score = 0;
-    time = 20;
+    time = config.duration;
     scoreEl.textContent = "0";
-    timeEl.textContent = "20";
-    arcadeStatus.textContent = "Jogo em andamento...";
+    timeEl.textContent = String(time);
+    arcadeStatus.textContent = `Jogo em andamento (${config.label})...`;
     startBtn.disabled = true;
+    levelSelect.disabled = true;
+    applyLevelVisual();
     move();
-    moveId = setInterval(move, 650);
+    moveId = setInterval(move, config.moveMs);
     timerId = setInterval(() => {
       time -= 1;
       timeEl.textContent = String(Math.max(0, time));
@@ -74,10 +144,14 @@ function mountReflex() {
 
   target.addEventListener("click", () => {
     if (!running) return;
-    score += 1;
+    const reactionMs = Math.max(0, performance.now() - lastSpawnAt);
+    const speedScore = Math.max(1, Math.round(config.speedBonus - reactionMs / 90));
+    score += 1 + speedScore;
     scoreEl.textContent = String(score);
     move();
   });
+
+  applyLevelVisual();
 
   return () => {
     clearInterval(moveId);
