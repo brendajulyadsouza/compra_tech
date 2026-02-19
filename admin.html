@@ -56,6 +56,26 @@
           <button id="auto-fill-btn" type="button" class="btn-secondary">Preencher automatico pelo link</button>
 
           <label>
+            Categoria
+            <select id="category" required>
+              <option value="Eletronicos">Eletronicos</option>
+              <option value="Casa e Cozinha">Casa e Cozinha</option>
+              <option value="Informatica">Informatica</option>
+              <option value="Celulares">Celulares</option>
+              <option value="Games">Games</option>
+              <option value="Moda">Moda</option>
+              <option value="Beleza">Beleza</option>
+              <option value="Esporte e Lazer">Esporte e Lazer</option>
+              <option value="Ferramentas">Ferramentas</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </label>
+          <label id="category-custom-wrap" hidden>
+            Nome da categoria
+            <input id="category-custom" type="text" placeholder="Ex.: Pets">
+          </label>
+
+          <label>
             Titulo
             <input id="title" type="text">
           </label>

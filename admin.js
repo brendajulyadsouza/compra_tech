@@ -17,6 +17,11 @@ const inputTitle = document.getElementById("title");
 const inputPrice = document.getElementById("price");
 const inputImage = document.getElementById("image");
 const inputDescription = document.getElementById("description");
+const inputCategory = document.getElementById("category");
+const inputCategoryCustom = document.getElementById("category-custom");
+const inputCategoryCustomWrap = document.getElementById("category-custom-wrap");
+
+const DEFAULT_CATEGORY = "Eletronicos";
 
 function escapeHtml(value) {
   return String(value)
@@ -35,6 +40,44 @@ function setStatus(message, isError = false) {
 function setLoginStatus(message, isError = false) {
   loginStatus.textContent = message;
   loginStatus.style.color = isError ? "#b91c1c" : "#0f766e";
+}
+
+function normalizeCategory(value) {
+  const text = String(value || "").trim();
+  return text || DEFAULT_CATEGORY;
+}
+
+function setCategoryValue(value) {
+  const category = normalizeCategory(value);
+  const option = Array.from(inputCategory.options).find((item) => item.value === category);
+  if (option) {
+    inputCategory.value = option.value;
+    inputCategoryCustomWrap.hidden = true;
+    inputCategoryCustom.value = "";
+    return;
+  }
+  inputCategory.value = "Outros";
+  inputCategoryCustomWrap.hidden = false;
+  inputCategoryCustom.value = category;
+}
+
+function getCategoryValue() {
+  if (inputCategory.value === "Outros") return normalizeCategory(inputCategoryCustom.value);
+  return normalizeCategory(inputCategory.value);
+}
+
+function inferCategoryFromText(text) {
+  const value = String(text || "").toLowerCase();
+  if (!value) return DEFAULT_CATEGORY;
+  if (/(smartphone|celular|iphone|samsung|xiaomi|motorola)/i.test(value)) return "Celulares";
+  if (/(notebook|pc|computador|monitor|teclado|mouse|ssd|hd)/i.test(value)) return "Informatica";
+  if (/(console|playstation|xbox|nintendo|jogo|gamer)/i.test(value)) return "Games";
+  if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
+  if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
+  if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
+  if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
+  if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
+  return "Eletronicos";
 }
 
 function isValidUrl(value) {
@@ -255,7 +298,7 @@ async function loadProducts() {
   const client = window.supabaseClient;
   const { data, error } = await client
     .from("products")
-    .select("id, affiliate_link, title, price, image, description, created_at")
+    .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
@@ -278,6 +321,7 @@ async function renderAdminProducts() {
     row.innerHTML = `
       <div>
         <h3>${escapeHtml(product.title)}</h3>
+        <p>${escapeHtml(normalizeCategory(product.category || DEFAULT_CATEGORY))}</p>
         <p>${product.price !== null && product.price !== undefined ? formatBRL(product.price) : "Preco nao informado"}</p>
       </div>
       <button class="btn-danger" type="button" data-product-id="${product.id}">Excluir</button>
@@ -323,6 +367,7 @@ async function fillByAffiliateLink() {
     inputPrice.value = data.price || "";
     inputImage.value = normalizeUrl(data.image) || previewScreenshotFromLink(link) || "";
     inputDescription.value = data.description || "";
+    setCategoryValue(inferCategoryFromText(`${data.title} ${data.description}`));
     if (isHttpOnlyUrl(data.image)) {
       setStatus("Imagem em http detectada: convertida automaticamente para https.", false);
       return;
@@ -367,10 +412,14 @@ form.addEventListener("submit", async (event) => {
   const rawImage = inputImage.value.trim();
   let image = normalizeUrl(rawImage);
   let description = inputDescription.value.trim();
+  const category = getCategoryValue();
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
   if (!isValidUrl(affiliateLink)) return setStatus("Informe um link valido (http/https).", true);
   if (!isMercadoLivreLink(affiliateLink)) return setStatus("Use apenas link de afiliacao do Mercado Livre.", true);
+  if (inputCategory.value === "Outros" && !inputCategoryCustom.value.trim()) {
+    return setStatus("Informe o nome da categoria personalizada.", true);
+  }
 
   if (!title) {
     try {
@@ -392,15 +441,28 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const client = window.supabaseClient;
-    const { error } = await client.from("products").insert({
+    let { error } = await client.from("products").insert({
       affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
       title,
       price: price === "" ? null : Number(price),
       image,
       description,
+      category,
     });
+    if (error && /column .*category/i.test(String(error.message || ""))) {
+      const retry = await client.from("products").insert({
+        affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
+        title,
+        price: price === "" ? null : Number(price),
+        image,
+        description,
+      });
+      error = retry.error;
+      if (!error) setStatus("Produto salvo. Execute o SQL para habilitar categorias.", false);
+    }
     if (error) throw error;
     form.reset();
+    setCategoryValue(DEFAULT_CATEGORY);
     await renderAdminProducts();
     setStatus("Produto salvo e publicado na vitrine.");
   } catch (error) {
@@ -409,6 +471,10 @@ form.addEventListener("submit", async (event) => {
 });
 
 autoFillBtn.addEventListener("click", fillByAffiliateLink);
+inputCategory.addEventListener("change", () => {
+  inputCategoryCustomWrap.hidden = inputCategory.value !== "Outros";
+  if (inputCategory.value !== "Outros") inputCategoryCustom.value = "";
+});
 
 async function initAuth() {
   try {
@@ -428,4 +494,5 @@ async function initAuth() {
   }
 }
 
+setCategoryValue(DEFAULT_CATEGORY);
 initAuth();

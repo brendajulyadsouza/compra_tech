@@ -1,10 +1,25 @@
 const mlGrid = document.getElementById("ml-only-grid");
 const mlEmpty = document.getElementById("ml-only-empty");
+const mlCategoryFilters = document.getElementById("ml-category-filters");
 const FALLBACK_PRODUCT_IMAGE =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a5b78"/><stop offset="100%" stop-color="#1f355c"/></linearGradient></defs><rect width="800" height="800" fill="url(#g)"/><text x="400" y="420" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="42">Imagem indisponivel</text></svg>'
   );
+const DEFAULT_CATEGORY = "Sem categoria";
+const PRESET_CATEGORIES = [
+  "Eletronicos",
+  "Casa e Cozinha",
+  "Informatica",
+  "Celulares",
+  "Games",
+  "Moda",
+  "Beleza",
+  "Esporte e Lazer",
+  "Ferramentas",
+];
+let allMercadoLivreProducts = [];
+let activeCategory = "Todas";
 
 function normalizeAffiliateUrl(value) {
   if (!value) return "";
@@ -95,6 +110,11 @@ function pickProductImage(product) {
   return buildPreviewImageFromLink(product.affiliate_link);
 }
 
+function normalizeCategory(value) {
+  const text = String(value || "").trim();
+  return text || DEFAULT_CATEGORY;
+}
+
 function applyImageFallbacks(img, sources) {
   let idx = 0;
   let settled = false;
@@ -122,7 +142,7 @@ async function fetchProducts() {
   if (!client) throw new Error("Supabase nao configurado.");
   const { data, error } = await client
     .from("products")
-    .select("id, affiliate_link, title, price, image, description, created_at")
+    .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
@@ -158,6 +178,14 @@ function render(products) {
     const content = document.createElement("div");
     content.className = "product-card__content";
 
+    const meta = document.createElement("div");
+    meta.className = "product-card__meta";
+    const categoryChip = document.createElement("span");
+    categoryChip.className = "store-chip";
+    categoryChip.textContent = normalizeCategory(product.category);
+    meta.appendChild(categoryChip);
+    content.appendChild(meta);
+
     const title = document.createElement("h3");
     title.textContent = product.title || "Produto sem titulo";
     content.appendChild(title);
@@ -189,10 +217,55 @@ function render(products) {
   }
 }
 
+function getCategoryList(products) {
+  const dynamicCategories = products.map((item) => normalizeCategory(item.category));
+  const categorySet = new Set([...PRESET_CATEGORIES, ...dynamicCategories]);
+  return ["Todas", ...Array.from(categorySet)];
+}
+
+function getCategoryCounts(products) {
+  const counts = new Map();
+  counts.set("Todas", products.length);
+  products.forEach((item) => {
+    const category = normalizeCategory(item.category);
+    counts.set(category, (counts.get(category) || 0) + 1);
+  });
+  return counts;
+}
+
+function getFilteredProducts() {
+  if (activeCategory === "Todas") return allMercadoLivreProducts;
+  return allMercadoLivreProducts.filter((item) => normalizeCategory(item.category) === activeCategory);
+}
+
+function renderCategoryFilters(categories) {
+  if (!mlCategoryFilters) return;
+  const counts = getCategoryCounts(allMercadoLivreProducts);
+  mlCategoryFilters.innerHTML = "";
+  categories.forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn-secondary category-filter-btn";
+    const count = counts.get(category) || 0;
+    button.textContent = `${category} (${count})`;
+    button.setAttribute("aria-pressed", String(category === activeCategory));
+    if (category === activeCategory) button.classList.add("is-active");
+    button.addEventListener("click", () => {
+      activeCategory = category;
+      renderCategoryFilters(categories);
+      render(getFilteredProducts());
+    });
+    mlCategoryFilters.appendChild(button);
+  });
+}
+
 async function init() {
   try {
     const products = await fetchProducts();
-    render(products.filter((item) => isMercadoLivreLink(item.affiliate_link)));
+    allMercadoLivreProducts = products.filter((item) => isMercadoLivreLink(item.affiliate_link));
+    const categories = getCategoryList(allMercadoLivreProducts);
+    renderCategoryFilters(categories);
+    render(getFilteredProducts());
   } catch (error) {
     console.error(error);
     mlEmpty.style.display = "block";
