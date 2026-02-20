@@ -20,8 +20,14 @@ const inputDescription = document.getElementById("description");
 const inputCategory = document.getElementById("category");
 const inputCategoryCustom = document.getElementById("category-custom");
 const inputCategoryCustomWrap = document.getElementById("category-custom-wrap");
+const formTitle = document.getElementById("form-title");
+const formModeHint = document.getElementById("form-mode-hint");
+const saveBtn = document.getElementById("save-btn");
+const cancelEditBtn = document.getElementById("cancel-edit-btn");
 
 const DEFAULT_CATEGORY = "Eletronicos";
+let currentEditingId = null;
+let cachedProducts = [];
 
 function escapeHtml(value) {
   return String(value)
@@ -294,6 +300,42 @@ function showLogin() {
   adminApp.hidden = true;
 }
 
+function setFormModeEditing(isEditing) {
+  if (isEditing) {
+    formTitle.textContent = "Editar produto";
+    formModeHint.hidden = false;
+    saveBtn.textContent = "Atualizar produto";
+    cancelEditBtn.hidden = false;
+    return;
+  }
+  formTitle.textContent = "Novo produto";
+  formModeHint.hidden = true;
+  saveBtn.textContent = "Salvar produto";
+  cancelEditBtn.hidden = true;
+}
+
+function resetProductForm() {
+  form.reset();
+  setCategoryValue(DEFAULT_CATEGORY);
+  currentEditingId = null;
+  setFormModeEditing(false);
+}
+
+function startEditingProduct(productId) {
+  const product = cachedProducts.find((item) => String(item.id) === String(productId));
+  if (!product) return;
+  currentEditingId = product.id;
+  setFormModeEditing(true);
+  inputAffiliateLink.value = product.affiliate_link || "";
+  inputTitle.value = product.title || "";
+  inputPrice.value = product.price ?? "";
+  inputImage.value = product.image || "";
+  inputDescription.value = product.description || "";
+  setCategoryValue(product.category || DEFAULT_CATEGORY);
+  setStatus("Produto carregado para edicao.");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function loadProducts() {
   const client = window.supabaseClient;
   const { data, error } = await client
@@ -307,6 +349,7 @@ async function loadProducts() {
 async function renderAdminProducts() {
   adminProductsList.innerHTML = "";
   const products = await loadProducts();
+  cachedProducts = products;
 
   if (!products.length) {
     adminEmptyState.style.display = "block";
@@ -324,10 +367,20 @@ async function renderAdminProducts() {
         <p>${escapeHtml(normalizeCategory(product.category || DEFAULT_CATEGORY))}</p>
         <p>${product.price !== null && product.price !== undefined ? formatBRL(product.price) : "Preco nao informado"}</p>
       </div>
-      <button class="btn-danger" type="button" data-product-id="${product.id}">Excluir</button>
+      <div class="admin-actions">
+        <button class="btn-secondary" type="button" data-edit-product-id="${product.id}">Editar</button>
+        <button class="btn-danger" type="button" data-product-id="${product.id}">Excluir</button>
+      </div>
     `;
     adminProductsList.appendChild(row);
   }
+
+  adminProductsList.querySelectorAll("[data-edit-product-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.getAttribute("data-edit-product-id");
+      startEditingProduct(id);
+    });
+  });
 
   adminProductsList.querySelectorAll("[data-product-id]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -441,15 +494,36 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const client = window.supabaseClient;
-    let { error } = await client.from("products").insert({
+    const wasEditing = Boolean(currentEditingId);
+    const payload = {
       affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
       title,
       price: price === "" ? null : Number(price),
       image,
       description,
       category,
-    });
-    if (error && /column .*category/i.test(String(error.message || ""))) {
+    };
+
+    let error = null;
+    if (currentEditingId) {
+      const result = await client.from("products").update(payload).eq("id", currentEditingId);
+      error = result.error;
+      if (error && /column .*category/i.test(String(error.message || ""))) {
+        const retry = await client.from("products").update({
+          affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
+          title,
+          price: price === "" ? null : Number(price),
+          image,
+          description,
+        }).eq("id", currentEditingId);
+        error = retry.error;
+      }
+    } else {
+      const result = await client.from("products").insert(payload);
+      error = result.error;
+    }
+
+    if (error && /column .*category/i.test(String(error.message || "")) && !currentEditingId) {
       const retry = await client.from("products").insert({
         affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
         title,
@@ -461,10 +535,9 @@ form.addEventListener("submit", async (event) => {
       if (!error) setStatus("Produto salvo. Execute o SQL para habilitar categorias.", false);
     }
     if (error) throw error;
-    form.reset();
-    setCategoryValue(DEFAULT_CATEGORY);
+    resetProductForm();
     await renderAdminProducts();
-    setStatus("Produto salvo e publicado na vitrine.");
+    setStatus(wasEditing ? "Produto atualizado com sucesso." : "Produto salvo e publicado na vitrine.");
   } catch (error) {
     setStatus(error.message || "Nao foi possivel salvar produto.", true);
   }
@@ -474,6 +547,10 @@ autoFillBtn.addEventListener("click", fillByAffiliateLink);
 inputCategory.addEventListener("change", () => {
   inputCategoryCustomWrap.hidden = inputCategory.value !== "Outros";
   if (inputCategory.value !== "Outros") inputCategoryCustom.value = "";
+});
+cancelEditBtn.addEventListener("click", () => {
+  resetProductForm();
+  setStatus("Edicao cancelada.");
 });
 
 async function initAuth() {
@@ -494,5 +571,5 @@ async function initAuth() {
   }
 }
 
-setCategoryValue(DEFAULT_CATEGORY);
+resetProductForm();
 initAuth();

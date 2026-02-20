@@ -47,7 +47,8 @@
 
     <main class="container admin-layout">
       <section class="card">
-        <h2>Novo produto</h2>
+        <h2 id="form-title">Novo produto</h2>
+        <p id="form-mode-hint" class="empty-state" hidden>Modo edicao ativo.</p>
         <form id="product-form" class="form">
           <label>
             Link de afiliacao (Mercado Livre)
@@ -91,7 +92,10 @@
             Descricao
             <textarea id="description" rows="3"></textarea>
           </label>
-          <button class="btn-primary" type="submit">Salvar produto</button>
+          <div class="admin-actions">
+            <button id="save-btn" class="btn-primary" type="submit">Salvar produto</button>
+            <button id="cancel-edit-btn" class="btn-secondary" type="button" hidden>Cancelar edicao</button>
+          </div>
         </form>
         <p id="status-message" class="status-message"></p>
       </section>

@@ -31,3 +31,10 @@ create policy "authenticated_can_delete_products"
 on public.products for delete
 to authenticated
 using (true);
+
+drop policy if exists "authenticated_can_update_products" on public.products;
+create policy "authenticated_can_update_products"
+on public.products for update
+to authenticated
+using (true)
+with check (true);
