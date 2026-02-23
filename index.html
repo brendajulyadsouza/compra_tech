@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="lDr_lnC25nq5vabHHsVcto6LMOqBs12MUoWphojKxuw">
-  <title>CompraTech</title>
+  <title>CompraTech - Mercado Livre</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
   <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
   <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
@@ -19,7 +19,6 @@
         <span>CompraTech</span>
       </div>
       <nav class="topnav">
-        <a href="index.html">Pagina Inicial</a>
         <a href="mercado-livre.html">Vitrine Mercado Livre</a>
         <a class="admin-link" href="admin.html">Painel ADM</a>
       </nav>
@@ -28,29 +27,18 @@
 
   <header class="hero">
     <div class="hero__content">
-      <p class="tag">Afiliados em destaque</p>
-      <h1>Ofertas de tecnologia, casa e moda</h1>
-      <p class="subtitle">Jogue no Game Lounge e depois confira as ofertas do Mercado Livre.</p>
+      <p class="tag">Mercado Livre</p>
+      <h1>Vitrine Mercado Livre</h1>
+      <p class="subtitle">Todos os produtos de afiliacao do Mercado Livre em uma pagina dedicada.</p>
     </div>
   </header>
 
   <main class="container">
-    <section class="arcade-section" id="jogos">
-      <h2 class="home-title-center">Game Lounge CompraTech</h2>
-      <p class="subtitle">Escolha um mini game divertido para jogar antes de explorar as ofertas.</p>
-      <div class="arcade-layout">
-        <aside class="arcade-menu card">
-          <button class="arcade-game-btn is-active" data-game="reflex">Reflexo Turbo</button>
-          <button class="arcade-game-btn" data-game="guess">Adivinhe o Numero</button>
-          <button class="arcade-game-btn" data-game="memory">Memoria Flash</button>
-        </aside>
-        <div class="arcade-stage card">
-          <h3 id="arcade-title">Reflexo Turbo</h3>
-          <p id="arcade-description" class="subtitle">Clique no alvo o maximo que conseguir em 20 segundos.</p>
-          <div id="arcade-canvas" class="arcade-canvas"></div>
-          <p id="arcade-status" class="empty-state"></p>
-        </div>
-      </div>
+    <section>
+      <h2>Ofertas Mercado Livre</h2>
+      <div id="ml-category-filters" class="category-filters" aria-label="Filtros de categoria"></div>
+      <div id="ml-only-grid" class="products-grid"></div>
+      <p id="ml-only-empty" class="empty-state">Nenhum produto do Mercado Livre cadastrado.</p>
     </section>
   </main>
 
@@ -88,6 +76,9 @@
   </section>
 
   <script src="accessibility.js"></script>
-  <script src="game-hub.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="storage.js"></script>
+  <script src="mercado-livre.js"></script>
 </body>
 </html>
