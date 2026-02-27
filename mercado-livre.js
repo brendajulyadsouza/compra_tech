@@ -58,7 +58,12 @@ function normalizeAffiliateUrl(value) {
 function isMercadoLivreLink(value) {
   try {
     const host = new URL(normalizeAffiliateUrl(value)).hostname.toLowerCase();
-    return host.includes("mercadolivre") || host.includes("mercadolibre");
+    return (
+      host.includes("mercadolivre") ||
+      host.includes("mercadolibre") ||
+      host === "meli.la" ||
+      host.endsWith(".meli.la")
+    );
   } catch {
     return false;
   }

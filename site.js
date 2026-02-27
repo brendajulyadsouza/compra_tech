@@ -46,7 +46,12 @@ function detectStore(urlValue) {
   try {
     const host = new URL(normalizeAffiliateUrl(urlValue)).hostname.toLowerCase();
     if (host.includes("shein")) return "Shein";
-    if (host.includes("mercadolivre") || host.includes("mercadolibre")) return "Mercado Livre";
+    if (
+      host.includes("mercadolivre") ||
+      host.includes("mercadolibre") ||
+      host === "meli.la" ||
+      host.endsWith(".meli.la")
+    ) return "Mercado Livre";
     return "Outros";
   } catch {
     return "Outros";
