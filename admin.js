@@ -1,4 +1,4 @@
-const loginGate = document.getElementById("login-gate");
+﻿const loginGate = document.getElementById("login-gate");
 const adminApp = document.getElementById("admin-app");
 const loginForm = document.getElementById("login-form");
 const loginUser = document.getElementById("login-user");
@@ -81,6 +81,9 @@ function inferCategoryFromText(text) {
   if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
   if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
   if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
+  if (/(saude|saúde|vitamina|suplemento|farmacia|farmácia|medicamento)/i.test(value)) return "Saude";
+  if (/(pet|pets|racao|ração|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
+  if (/(bebe|bebê|bebes|bebês|fralda|mamadeira|chupeta|berco|berço|carrinho)/i.test(value)) return "Bebes";
   if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
   if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
   return "Eletronicos";
@@ -578,3 +581,4 @@ async function initAuth() {
 
 resetProductForm();
 initAuth();
+

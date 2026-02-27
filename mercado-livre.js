@@ -15,6 +15,9 @@ const PRESET_CATEGORIES = [
   "Games",
   "Moda",
   "Beleza",
+  "Saude",
+  "Pets",
+  "Bebes",
   "Esporte e Lazer",
   "Ferramentas",
 ];
