@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
-const mysql = require("mysql2/promise");
+const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
@@ -12,11 +12,12 @@ const {
   DB_USER,
   DB_PASS,
   DB_NAME,
-  DB_PORT = 3306,
+  DB_PORT = 5432,
   JWT_SECRET,
   ADMIN_USER,
   ADMIN_PASS,
   CORS_ORIGIN,
+  DATABASE_URL,
 } = process.env;
 
 if (!JWT_SECRET) {
@@ -24,21 +25,27 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-if (!DB_HOST || !DB_USER || !DB_NAME) {
-  console.error("DB_HOST, DB_USER e DB_NAME sao obrigatorios no .env");
+if (!DATABASE_URL && (!DB_HOST || !DB_USER || !DB_NAME)) {
+  console.error("DATABASE_URL ou DB_HOST/DB_USER/DB_NAME sao obrigatorios no .env");
   process.exit(1);
 }
 
-const pool = mysql.createPool({
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASS,
-  database: DB_NAME,
-  port: Number(DB_PORT),
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+const useSsl = Boolean(DATABASE_URL);
+const pool = new Pool(
+  DATABASE_URL
+    ? {
+        connectionString: DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      }
+    : {
+        host: DB_HOST,
+        user: DB_USER,
+        password: DB_PASS,
+        database: DB_NAME,
+        port: Number(DB_PORT),
+        ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      }
+);
 
 const app = express();
 
@@ -94,7 +101,7 @@ app.get("/api/auth/check", requireAuth, (req, res) => {
 
 app.get("/api/products", async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const { rows } = await pool.query(
       "SELECT id, affiliate_link, title, category, price, image, description, created_at FROM products ORDER BY created_at DESC"
     );
     res.json(rows || []);
@@ -112,12 +119,12 @@ app.post("/api/products", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Affiliate_link e titulo sao obrigatorios." });
     }
 
-    const [result] = await pool.query(
-      "INSERT INTO products (affiliate_link, title, category, price, image, description) VALUES (?, ?, ?, ?, ?, ?)",
+    const { rows } = await pool.query(
+      "INSERT INTO products (affiliate_link, title, category, price, image, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
       [affiliate_link, title, category || null, price, image || null, description || null]
     );
 
-    res.json({ id: result.insertId });
+    res.json({ id: rows?.[0]?.id });
   } catch (error) {
     const message = error?.message === "Preco invalido." ? error.message : "Falha ao salvar produto.";
     res.status(500).json({ error: message });
@@ -135,7 +142,7 @@ app.put("/api/products/:id", requireAuth, async (req, res) => {
     }
 
     await pool.query(
-      "UPDATE products SET affiliate_link = ?, title = ?, category = ?, price = ?, image = ?, description = ? WHERE id = ?",
+      "UPDATE products SET affiliate_link = $1, title = $2, category = $3, price = $4, image = $5, description = $6 WHERE id = $7",
       [affiliate_link, title, category || null, price, image || null, description || null, id]
     );
 
@@ -149,7 +156,7 @@ app.put("/api/products/:id", requireAuth, async (req, res) => {
 app.delete("/api/products/:id", requireAuth, async (req, res) => {
   try {
     const id = req.params.id;
-    await pool.query("DELETE FROM products WHERE id = ?", [id]);
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Falha ao remover produto." });

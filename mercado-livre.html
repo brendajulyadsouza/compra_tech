@@ -25,16 +25,65 @@
   </div>
 
   <header class="hero">
-    <div class="hero__content">
-      <p class="tag">Mercado Livre</p>
-      <h1>Vitrine Mercado Livre</h1>
-      <p class="subtitle">Todos os produtos de afiliacao do Mercado Livre em uma pagina dedicada.</p>
+    <div class="hero__layout">
+      <div class="hero__content">
+        <p class="tag">Mercado Livre</p>
+        <h1>Vitrine Mercado Livre</h1>
+        <p class="subtitle">Todos os produtos de afiliacao do Mercado Livre em uma pagina dedicada.</p>
+        <div class="hero__actions">
+          <a class="btn-primary" href="#ofertas">Ver ofertas</a>
+          <a class="btn-secondary" href="admin.html">Painel ADM</a>
+        </div>
+        <div class="hero__badges" aria-label="Destaques da vitrine">
+          <span class="badge">Categorias organizadas</span>
+          <span class="badge">Links oficiais</span>
+          <span class="badge">Vitrine responsiva</span>
+        </div>
+      </div>
+      <aside class="hero__aside">
+        <div class="hero__card hero__card--highlight">
+          <h3>Como funciona</h3>
+          <p>Explore as categorias, encontre a oferta ideal e siga o link direto para o Mercado Livre.</p>
+        </div>
+        <div class="hero__card">
+          <h3>Curadoria rapida</h3>
+          <ul class="hero__list">
+            <li>Filtro por categoria com contagem</li>
+            <li>Cards com preco, descricao e imagem</li>
+            <li>Atualizacao simples pelo painel</li>
+          </ul>
+        </div>
+      </aside>
     </div>
   </header>
 
   <main class="container">
-    <section>
-      <h2>Ofertas Mercado Livre</h2>
+    <section class="feature-section">
+      <div class="section-head">
+        <h2>Por que usar a CompraTech</h2>
+        <p class="subtitle">Uma vitrine enxuta, organizada e pronta para destacar os seus afiliados com clareza.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Vitrine limpa</h3>
+          <p>Layout focado em conversao: cards grandes, CTA visivel e filtro por categorias.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Gestao simples</h3>
+          <p>Adicione produtos em poucos cliques e mantenha o estoque de afiliados sempre atualizado.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Pronto para mobile</h3>
+          <p>Interface responsiva com tipografia forte e espacamento pensado para navegacao rapida.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="ofertas">
+      <div class="section-head">
+        <h2>Ofertas Mercado Livre</h2>
+        <p class="subtitle">Escolha a categoria e encontre os produtos mais relevantes.</p>
+      </div>
       <div id="ml-category-filters" class="category-filters" aria-label="Filtros de categoria"></div>
       <div id="ml-only-grid" class="products-grid"></div>
       <p id="ml-only-empty" class="empty-state">Nenhum produto do Mercado Livre cadastrado.</p>

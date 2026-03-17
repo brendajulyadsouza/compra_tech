@@ -1,18 +1,19 @@
-# CompraTech com MySQL + Node
+ï»¿# CompraTech com PostgreSQL + Node
 
 ## 1) Criar a base e tabela
 
-Crie o banco no MySQL e rode `mysql-setup.sql`.
+Crie o banco no PostgreSQL e rode `db-setup.sql`.
 
 ## 2) Configurar .env
 
-Edite `.env` com os dados do seu MySQL:
+Edite `.env` com os dados do seu PostgreSQL (ou use `DATABASE_URL` no Render):
 
 - `DB_HOST`
 - `DB_PORT`
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASS`
+- `DATABASE_URL` (opcional)
 
 Defina tambem:
 - `ADMIN_USER`
@@ -37,6 +38,6 @@ Acesse:
 
 ## Como funciona
 
-- `server.js` expõe a API e serve os arquivos estaticos.
+- `server.js` expoe a API e serve os arquivos estaticos.
 - `admin.html` faz login via `/api/login` e cadastra/remove produtos.
 - `index.html` e `mercado-livre.html` consomem `/api/products`.
