@@ -1,4 +1,4 @@
-ï»¿const loginGate = document.getElementById("login-gate");
+const loginGate = document.getElementById("login-gate");
 const adminApp = document.getElementById("admin-app");
 const loginForm = document.getElementById("login-form");
 const loginUser = document.getElementById("login-user");
@@ -26,8 +26,54 @@ const saveBtn = document.getElementById("save-btn");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 
 const DEFAULT_CATEGORY = "Eletronicos";
+const API_BASE = window.API_BASE || "";
+const TOKEN_KEY = "compraTechToken";
 let currentEditingId = null;
 let cachedProducts = [];
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function setToken(value) {
+  if (!value) {
+    localStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+  localStorage.setItem(TOKEN_KEY, value);
+}
+
+function buildApiUrl(path) {
+  return `${API_BASE}${path}`;
+}
+
+async function apiRequest(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (options.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(buildApiUrl(path), {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = "Erro na requisicao.";
+    try {
+      const data = await response.json();
+      if (data?.error) message = data.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -81,9 +127,9 @@ function inferCategoryFromText(text) {
   if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
   if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
   if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
-  if (/(saude|saÃºde|vitamina|suplemento|farmacia|farmÃ¡cia|medicamento)/i.test(value)) return "Saude";
-  if (/(pet|pets|racao|raÃ§Ã£o|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
-  if (/(bebe|bebÃª|bebes|bebÃªs|fralda|mamadeira|chupeta|berco|berÃ§o|carrinho)/i.test(value)) return "Bebes";
+  if (/(saude|saúde|vitamina|suplemento|farmacia|farmácia|medicamento)/i.test(value)) return "Saude";
+  if (/(pet|pets|racao|ração|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
+  if (/(bebe|bebê|bebes|bebês|fralda|mamadeira|chupeta|berco|berço|carrinho)/i.test(value)) return "Bebes";
   if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
   if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
   return "Eletronicos";
@@ -345,12 +391,7 @@ function startEditingProduct(productId) {
 }
 
 async function loadProducts() {
-  const client = window.supabaseClient;
-  const { data, error } = await client
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+  const data = await apiRequest("/api/products");
   return Array.isArray(data) ? data : [];
 }
 
@@ -393,10 +434,8 @@ async function renderAdminProducts() {
   adminProductsList.querySelectorAll("[data-product-id]").forEach((button) => {
     button.addEventListener("click", async () => {
       try {
-        const client = window.supabaseClient;
         const id = button.getAttribute("data-product-id");
-        const { error } = await client.from("products").delete().eq("id", id);
-        if (error) throw error;
+        await apiRequest(`/api/products/${id}`, { method: "DELETE" });
         await renderAdminProducts();
         setStatus("Produto removido.");
       } catch (error) {
@@ -442,12 +481,15 @@ async function fillByAffiliateLink() {
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const client = window.supabaseClient;
-    const { error } = await client.auth.signInWithPassword({
-      email: loginUser.value.trim(),
-      password: loginPass.value,
+    const result = await apiRequest("/api/login", {
+      method: "POST",
+      body: JSON.stringify({
+        user: loginUser.value.trim(),
+        pass: loginPass.value,
+      }),
     });
-    if (error) throw error;
+    if (!result?.token) throw new Error("Falha no login.");
+    setToken(result.token);
     loginForm.reset();
     setLoginStatus("Acesso liberado.");
     showAdmin();
@@ -458,8 +500,7 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", async () => {
-  const client = window.supabaseClient;
-  await client.auth.signOut();
+  setToken(null);
   showLogin();
   setLoginStatus("Sessao encerrada.");
 });
@@ -501,7 +542,6 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const client = window.supabaseClient;
     const wasEditing = Boolean(currentEditingId);
     const payload = {
       affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
@@ -512,42 +552,30 @@ form.addEventListener("submit", async (event) => {
       category,
     };
 
-    let error = null;
     if (currentEditingId) {
-      const result = await client.from("products").update(payload).eq("id", currentEditingId);
-      error = result.error;
-      if (error && /column .*category/i.test(String(error.message || ""))) {
-        const retry = await client.from("products").update({
-          affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
-          title,
-          price: price === "" ? null : Number(price),
-          image,
-          description,
-        }).eq("id", currentEditingId);
-        error = retry.error;
-      }
+      await apiRequest(`/api/products/${currentEditingId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
     } else {
-      const result = await client.from("products").insert(payload);
-      error = result.error;
+      await apiRequest("/api/products", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     }
 
-    if (error && /column .*category/i.test(String(error.message || "")) && !currentEditingId) {
-      const retry = await client.from("products").insert({
-        affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
-        title,
-        price: price === "" ? null : Number(price),
-        image,
-        description,
-      });
-      error = retry.error;
-      if (!error) setStatus("Produto salvo. Execute o SQL para habilitar categorias.", false);
-    }
-    if (error) throw error;
     resetProductForm();
     await renderAdminProducts();
     setStatus(wasEditing ? "Produto atualizado com sucesso." : "Produto salvo e publicado na vitrine.");
   } catch (error) {
-    setStatus(error.message || "Nao foi possivel salvar produto.", true);
+    const message = error.message || "Nao foi possivel salvar produto.";
+    if (/Nao autorizado|Sessao expirada/i.test(message)) {
+      setToken(null);
+      showLogin();
+      setLoginStatus("Sua sessao expirou. Entre novamente.", true);
+      return;
+    }
+    setStatus(message, true);
   }
 });
 
@@ -563,22 +591,21 @@ cancelEditBtn.addEventListener("click", () => {
 
 async function initAuth() {
   try {
-    const client = window.supabaseClient;
-    const { data, error } = await client.auth.getSession();
-    if (error) throw error;
-    if (data?.session) {
-      showAdmin();
-      await renderAdminProducts();
+    const token = getToken();
+    if (!token) {
+      showLogin();
+      setLoginStatus("Use seu usuario e senha de admin.");
       return;
     }
-    showLogin();
-    setLoginStatus("Use seu email e senha de admin.");
+    await apiRequest("/api/auth/check");
+    showAdmin();
+    await renderAdminProducts();
   } catch {
+    setToken(null);
     showLogin();
-    setLoginStatus("Use seu email e senha de admin.");
+    setLoginStatus("Use seu usuario e senha de admin.");
   }
 }
 
 resetProductForm();
 initAuth();
-

@@ -2,6 +2,7 @@ const mlGrid = document.getElementById("ml-products-grid");
 const mlEmptyState = document.getElementById("ml-empty-state");
 const sheinGrid = document.getElementById("shein-products-grid");
 const sheinEmptyState = document.getElementById("shein-empty-state");
+const API_BASE = window.API_BASE || "";
 const FALLBACK_PRODUCT_IMAGE =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -127,15 +128,9 @@ function applyImageFallbacks(img, sources) {
 }
 
 async function fetchProducts() {
-  const client = window.supabaseClient;
-  if (!client) throw new Error("Supabase nao configurado.");
-
-  const { data, error } = await client
-    .from("products")
-    .select("id, affiliate_link, title, price, image, description, created_at")
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
+  const response = await fetch(`${API_BASE}/api/products`);
+  if (!response.ok) throw new Error("Nao foi possivel carregar produtos.");
+  const data = await response.json();
   return Array.isArray(data) ? data : [];
 }
 

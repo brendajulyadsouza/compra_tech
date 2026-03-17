@@ -1,6 +1,7 @@
 const mlGrid = document.getElementById("ml-only-grid");
 const mlEmpty = document.getElementById("ml-only-empty");
 const mlCategoryFilters = document.getElementById("ml-category-filters");
+const API_BASE = window.API_BASE || "";
 const FALLBACK_PRODUCT_IMAGE =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -146,13 +147,9 @@ function applyImageFallbacks(img, sources) {
 }
 
 async function fetchProducts() {
-  const client = window.supabaseClient;
-  if (!client) throw new Error("Supabase nao configurado.");
-  const { data, error } = await client
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+  const response = await fetch(`${API_BASE}/api/products`);
+  if (!response.ok) throw new Error("Nao foi possivel carregar produtos.");
+  const data = await response.json();
   return Array.isArray(data) ? data : [];
 }
 

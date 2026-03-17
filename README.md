@@ -1,27 +1,42 @@
-# CompraTech com Supabase (sem servidor proprio)
+# CompraTech com MySQL + Node
 
-## 1) Configurar Supabase
+## 1) Criar a base e tabela
 
-1. Crie um projeto no Supabase.
-2. Abra `SQL Editor` e rode `supabase-setup.sql`.
-3. Em `Authentication > Users`, crie o usuario admin (email/senha).
-4. Em `Project Settings > API`, copie:
-   - Project URL
-   - anon public key
+Crie o banco no MySQL e rode `mysql-setup.sql`.
 
-## 2) Configurar o front
+## 2) Configurar .env
 
-1. Abra `supabase-config.js`.
-2. Preencha:
-   - `window.SUPABASE_URL`
-   - `window.SUPABASE_ANON_KEY`
+Edite `.env` com os dados do seu MySQL:
 
-## 3) Publicar
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASS`
 
-Publique no Vercel normalmente.
+Defina tambem:
+- `ADMIN_USER`
+- `ADMIN_PASS`
+- `JWT_SECRET`
+
+## 3) Instalar dependencias
+
+```bash
+npm install
+```
+
+## 4) Rodar servidor
+
+```bash
+npm run dev
+```
+
+Acesse:
+- Vitrine: `http://localhost:3000/index.html`
+- Admin: `http://localhost:3000/admin.html`
 
 ## Como funciona
 
-- `index.html` le os produtos da tabela `products`.
-- `admin.html` faz login com Supabase Auth e cadastra/remove produtos.
-- Tudo sincroniza para todos os dispositivos.
+- `server.js` expõe a API e serve os arquivos estaticos.
+- `admin.html` faz login via `/api/login` e cadastra/remove produtos.
+- `index.html` e `mercado-livre.html` consomem `/api/products`.
