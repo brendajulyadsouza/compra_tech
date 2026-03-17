@@ -53,6 +53,11 @@ if (CORS_ORIGIN) {
   app.use(cors({ origin: CORS_ORIGIN }));
 }
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(express.json({ limit: "1mb" }));
 
 function requireAuth(req, res, next) {
