@@ -111,6 +111,7 @@ app.get("/api/products", async (req, res) => {
     );
     res.json(rows || []);
   } catch (error) {
+    console.error("Erro ao carregar produtos:", error);
     res.status(500).json({ error: "Falha ao carregar produtos." });
   }
 });
