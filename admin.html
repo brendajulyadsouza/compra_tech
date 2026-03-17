@@ -25,6 +25,18 @@
           Senha
           <input id="login-pass" type="password" required autocomplete="current-password">
         </label>
+        <div class="lamp-row">
+          <button id="lamp-toggle" class="lamp-toggle" type="button" aria-pressed="false" aria-label="Mostrar senha">
+            <span class="lamp">
+              <span class="lamp__shade"></span>
+              <span class="lamp__inner"></span>
+              <span class="lamp__bulb"></span>
+              <span class="lamp__stem"></span>
+              <span class="lamp__base"></span>
+            </span>
+            <span class="lamp-text" id="lamp-text">Ver senha</span>
+          </button>
+        </div>
         <button class="btn-primary" type="submit">Entrar</button>
       </form>
       <p id="login-status" class="status-message"></p>

@@ -1,8 +1,10 @@
-const loginGate = document.getElementById("login-gate");
+ï»¿const loginGate = document.getElementById("login-gate");
 const adminApp = document.getElementById("admin-app");
 const loginForm = document.getElementById("login-form");
 const loginUser = document.getElementById("login-user");
 const loginPass = document.getElementById("login-pass");
+const lampToggle = document.getElementById("lamp-toggle");
+const lampText = document.getElementById("lamp-text");
 const loginStatus = document.getElementById("login-status");
 const logoutBtn = document.getElementById("logout-btn");
 
@@ -94,6 +96,22 @@ function setLoginStatus(message, isError = false) {
   loginStatus.style.color = isError ? "#b91c1c" : "#0f766e";
 }
 
+function initLampToggle() {
+  if (!lampToggle || !loginPass) return;
+  const setLampState = (isOn) => {
+    lampToggle.classList.toggle("is-on", isOn);
+    lampToggle.setAttribute("aria-pressed", String(isOn));
+    lampToggle.setAttribute("aria-label", isOn ? "Ocultar senha" : "Mostrar senha");
+    if (lampText) lampText.textContent = isOn ? "Ocultar senha" : "Ver senha";
+    loginPass.type = isOn ? "text" : "password";
+  };
+  setLampState(false);
+  lampToggle.addEventListener("click", () => {
+    const isOn = lampToggle.classList.contains("is-on");
+    setLampState(!isOn);
+  });
+}
+
 function normalizeCategory(value) {
   const text = String(value || "").trim();
   return text || DEFAULT_CATEGORY;
@@ -125,11 +143,11 @@ function inferCategoryFromText(text) {
   if (/(notebook|pc|computador|monitor|teclado|mouse|ssd|hd)/i.test(value)) return "Informatica";
   if (/(console|playstation|xbox|nintendo|jogo|gamer)/i.test(value)) return "Games";
   if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
+  if (/(bebe|bebÃª|bebes|bebÃªs|fralda|mamadeira|chupeta|berco|berÃ§o|carrinho)/i.test(value)) return "Bebes";
   if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
   if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
-  if (/(saude|saúde|vitamina|suplemento|farmacia|farmácia|medicamento)/i.test(value)) return "Saude";
-  if (/(pet|pets|racao|ração|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
-  if (/(bebe|bebê|bebes|bebês|fralda|mamadeira|chupeta|berco|berço|carrinho)/i.test(value)) return "Bebes";
+  if (/(saude|saÃºde|vitamina|suplemento|farmacia|farmÃ¡cia|medicamento)/i.test(value)) return "Saude";
+  if (/(pet|pets|racao|raÃ§Ã£o|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
   if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
   if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
   return "Eletronicos";
@@ -607,5 +625,11 @@ async function initAuth() {
   }
 }
 
+initLampToggle();
 resetProductForm();
 initAuth();
+
+
+
+
+

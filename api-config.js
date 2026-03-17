@@ -1,2 +1,2 @@
-// Base URL da API (deixe vazio para usar o mesmo dominio).
-window.API_BASE = window.API_BASE || "";
+// Base URL da API (ajuste se estiver usando Live Server em outra porta).
+window.API_BASE = window.API_BASE || "http://localhost:3001";
