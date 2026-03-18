@@ -445,6 +445,29 @@ autoFillBtn.addEventListener("click", async () => {
   }
 });
 
+let autoFillTimer = null;
+inputAffiliateLink.addEventListener("input", () => {
+  const link = normalizeUrl(inputAffiliateLink.value.trim());
+  if (!link || !isValidUrl(link)) return;
+  if (link === lastAutoFilledLink) return;
+  if (autoFillTimer) clearTimeout(autoFillTimer);
+  autoFillTimer = setTimeout(async () => {
+    setStatus("Buscando dados do produto...");
+    try {
+      const data = await fetchProductDataFromLink(link);
+      inputTitle.value = data.title || "";
+      inputPrice.value = data.price || "";
+      inputImage.value = data.image || "";
+      inputDescription.value = data.description || "";
+      setCategoryValue(inferCategoryFromText(`${data.title} ${data.description}`));
+      lastAutoFilledLink = link;
+      setStatus("Dados preenchidos automaticamente.");
+    } catch {
+      setStatus("Nao foi possivel preencher automaticamente.", true);
+    }
+  }, 600);
+});
+
 async function initAuth() {
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
