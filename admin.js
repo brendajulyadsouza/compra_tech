@@ -16,8 +16,11 @@ const saveBtn = document.getElementById("save-btn");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 
 const inputAffiliateLink = document.getElementById("affiliate-link");
+const autoFillBtn = document.getElementById("auto-fill-btn");
 const inputTitle = document.getElementById("title");
 const inputCategory = document.getElementById("category");
+const inputCategoryCustom = document.getElementById("category-custom");
+const inputCategoryCustomWrap = document.getElementById("category-custom-wrap");
 const inputPrice = document.getElementById("price");
 const inputImage = document.getElementById("image");
 const inputDescription = document.getElementById("description");
@@ -65,6 +68,10 @@ function resetProductForm() {
   form.reset();
   currentEditingId = null;
   setFormModeEditing(false);
+  if (inputCategoryCustomWrap) {
+    inputCategoryCustomWrap.hidden = true;
+    inputCategoryCustom.value = "";
+  }
 }
 
 function normalizeUrl(value) {
@@ -78,6 +85,31 @@ function normalizeUrl(value) {
 function normalizeCategory(value) {
   const text = String(value || "").trim();
   return text || "Sem categoria";
+}
+
+function setCategoryValue(value) {
+  if (!inputCategoryCustomWrap || !inputCategoryCustom) {
+    inputCategory.value = normalizeCategory(value);
+    return;
+  }
+  const category = normalizeCategory(value);
+  const option = Array.from(inputCategory.options).find((item) => item.value === category);
+  if (option) {
+    inputCategory.value = option.value;
+    inputCategoryCustomWrap.hidden = true;
+    inputCategoryCustom.value = "";
+    return;
+  }
+  inputCategory.value = "Outros";
+  inputCategoryCustomWrap.hidden = false;
+  inputCategoryCustom.value = category;
+}
+
+function getCategoryValue() {
+  if (inputCategory.value === "Outros" && inputCategoryCustom) {
+    return normalizeCategory(inputCategoryCustom.value);
+  }
+  return normalizeCategory(inputCategory.value);
 }
 
 function isValidUrl(value) {
@@ -245,7 +277,7 @@ async function renderAdminProducts() {
       setFormModeEditing(true);
       inputAffiliateLink.value = product.affiliate_link || "";
       inputTitle.value = product.title || "";
-      inputCategory.value = product.category || "";
+      setCategoryValue(product.category || "");
       inputPrice.value = product.price ?? "";
       inputImage.value = product.image || "";
       inputDescription.value = product.description || "";
@@ -298,13 +330,16 @@ form.addEventListener("submit", async (event) => {
 
   const affiliateLink = normalizeUrl(inputAffiliateLink.value.trim());
   const title = inputTitle.value.trim();
-  const category = normalizeCategory(inputCategory.value);
+  const category = getCategoryValue();
   const price = inputPrice.value === "" ? null : Number(inputPrice.value);
   const image = normalizeUrl(inputImage.value.trim());
   const description = inputDescription.value.trim();
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
   if (!title) return setStatus("Titulo e obrigatorio.", true);
+  if (inputCategory.value === "Outros" && inputCategoryCustom && !inputCategoryCustom.value.trim()) {
+    return setStatus("Informe o nome da categoria personalizada.", true);
+  }
 
   const payload = {
     affiliate_link: affiliateLink,
@@ -338,11 +373,23 @@ cancelEditBtn.addEventListener("click", () => {
   setStatus("Edicao cancelada.");
 });
 
-inputAffiliateLink.addEventListener("blur", async () => {
+if (inputCategoryCustomWrap) {
+  inputCategory.addEventListener("change", () => {
+    inputCategoryCustomWrap.hidden = inputCategory.value !== "Outros";
+    if (inputCategory.value !== "Outros") inputCategoryCustom.value = "";
+  });
+}
+
+autoFillBtn.addEventListener("click", async () => {
   const link = normalizeUrl(inputAffiliateLink.value.trim());
-  if (!link || !isValidUrl(link)) return;
-  if (link === lastAutoFilledLink) return;
-  if (inputTitle.value.trim()) return;
+  if (!link || !isValidUrl(link)) {
+    setStatus("Informe um link valido (http/https).", true);
+    return;
+  }
+  if (link === lastAutoFilledLink) {
+    setStatus("Este link ja foi preenchido.", false);
+    return;
+  }
   setStatus("Buscando dados do produto...");
   try {
     const data = await fetchProductDataFromLink(link);
@@ -350,7 +397,7 @@ inputAffiliateLink.addEventListener("blur", async () => {
     inputPrice.value = data.price || "";
     inputImage.value = data.image || "";
     inputDescription.value = data.description || "";
-    inputCategory.value = inferCategoryFromText(`${data.title} ${data.description}`);
+    setCategoryValue(inferCategoryFromText(`${data.title} ${data.description}`));
     lastAutoFilledLink = link;
     setStatus("Dados preenchidos automaticamente.");
   } catch {
