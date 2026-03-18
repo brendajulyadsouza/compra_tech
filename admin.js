@@ -187,6 +187,23 @@ function previewScreenshotFromLink(link) {
   return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
 }
 
+async function fetchPreviewData(link) {
+  try {
+    const normalized = normalizeUrl(link);
+    const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(normalized)}`);
+    if (!response.ok) return null;
+    const result = await response.json();
+    const data = result?.data || {};
+    return {
+      title: data.title || "",
+      description: data.description || "",
+      image: data.image?.url || data.logo?.url || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchProductDataFromLink(link) {
   let itemId = extractItemId(link);
   if (itemId) {
@@ -202,6 +219,10 @@ async function fetchProductDataFromLink(link) {
         }
       } catch {
         // ignore description fetch failures
+      }
+      if (!descriptionText) {
+        const preview = await fetchPreviewData(link);
+        if (preview?.description) descriptionText = preview.description;
       }
       return {
         title: data.title || "",
@@ -223,11 +244,12 @@ async function fetchProductDataFromLink(link) {
     }
   })();
 
+  const preview = await fetchPreviewData(link);
   return {
-    title: fallbackTitle,
+    title: preview?.title || fallbackTitle,
     price: "",
-    image: previewScreenshotFromLink(link),
-    description: "",
+    image: preview?.image || previewScreenshotFromLink(link),
+    description: preview?.description || "",
   };
 }
 
