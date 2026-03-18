@@ -25,6 +25,7 @@ const inputDescription = document.getElementById("description");
 const supabase = window.supabaseClient;
 let currentEditingId = null;
 let cachedProducts = [];
+let lastAutoFilledLink = "";
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -77,6 +78,114 @@ function normalizeUrl(value) {
 function normalizeCategory(value) {
   const text = String(value || "").trim();
   return text || "Sem categoria";
+}
+
+function isValidUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function decodeDeep(value, rounds = 3) {
+  let current = String(value);
+  for (let i = 0; i < rounds; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+  return current;
+}
+
+function findItemIdInText(text) {
+  const match = String(text).match(/\b(ML[A-Z]{1,3}\d{6,})\b/i);
+  return match?.[1]?.toUpperCase() || null;
+}
+
+function extractItemId(url) {
+  const candidates = [String(url), decodeDeep(url)];
+  for (const candidate of candidates) {
+    const direct = findItemIdInText(candidate);
+    if (direct) return direct;
+    try {
+      const parsed = new URL(candidate);
+      const pieces = [parsed.pathname, parsed.hash];
+      for (const piece of pieces) {
+        const found = findItemIdInText(decodeDeep(piece));
+        if (found) return found;
+      }
+      for (const [, value] of parsed.searchParams.entries()) {
+        const found = findItemIdInText(decodeDeep(value));
+        if (found) return found;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function inferCategoryFromText(text) {
+  const value = String(text || "").toLowerCase();
+  if (!value) return "Sem categoria";
+  if (/(smartphone|celular|iphone|samsung|xiaomi|motorola)/i.test(value)) return "Celulares";
+  if (/(notebook|pc|computador|monitor|teclado|mouse|ssd|hd)/i.test(value)) return "Informatica";
+  if (/(console|playstation|xbox|nintendo|jogo|gamer)/i.test(value)) return "Games";
+  if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
+  if (/(bebe|bebê|bebes|bebês|fralda|mamadeira|chupeta|berco|berço|carrinho)/i.test(value)) return "Bebes";
+  if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
+  if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
+  if (/(saude|saúde|vitamina|suplemento|farmacia|farmácia|medicamento)/i.test(value)) return "Saude";
+  if (/(pet|pets|racao|ração|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
+  if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
+  if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
+  return "Eletronicos";
+}
+
+function previewScreenshotFromLink(link) {
+  const normalized = normalizeUrl(link);
+  if (!normalized) return "";
+  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
+}
+
+async function fetchProductDataFromLink(link) {
+  let itemId = extractItemId(link);
+  if (itemId) {
+    const response = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        title: data.title || "",
+        price: data.price || "",
+        image: data.thumbnail || "",
+        description: data.warranty || "",
+      };
+    }
+  }
+
+  const fallbackTitle = (() => {
+    try {
+      const parsed = new URL(link);
+      const lastPath = parsed.pathname.split("/").filter(Boolean).pop() || "";
+      const decoded = decodeDeep(lastPath).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+      return decoded ? decoded.slice(0, 100) : `Produto de ${parsed.hostname}`;
+    } catch {
+      return "Produto afiliado";
+    }
+  })();
+
+  return {
+    title: fallbackTitle,
+    price: "",
+    image: previewScreenshotFromLink(link),
+    description: "",
+  };
 }
 
 function escapeHtml(value) {
@@ -227,6 +336,26 @@ form.addEventListener("submit", async (event) => {
 cancelEditBtn.addEventListener("click", () => {
   resetProductForm();
   setStatus("Edicao cancelada.");
+});
+
+inputAffiliateLink.addEventListener("blur", async () => {
+  const link = normalizeUrl(inputAffiliateLink.value.trim());
+  if (!link || !isValidUrl(link)) return;
+  if (link === lastAutoFilledLink) return;
+  if (inputTitle.value.trim()) return;
+  setStatus("Buscando dados do produto...");
+  try {
+    const data = await fetchProductDataFromLink(link);
+    inputTitle.value = data.title || "";
+    inputPrice.value = data.price || "";
+    inputImage.value = data.image || "";
+    inputDescription.value = data.description || "";
+    inputCategory.value = inferCategoryFromText(`${data.title} ${data.description}`);
+    lastAutoFilledLink = link;
+    setStatus("Dados preenchidos automaticamente.");
+  } catch {
+    setStatus("Nao foi possivel preencher automaticamente.", true);
+  }
 });
 
 async function initAuth() {
