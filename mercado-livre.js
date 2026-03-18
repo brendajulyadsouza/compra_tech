@@ -25,6 +25,41 @@ const PRESET_CATEGORIES = [
 let allMercadoLivreProducts = [];
 let activeCategory = "Todas";
 
+async function trackProductEvent(productId, eventType, options = {}) {
+  const numericProductId = Number(productId);
+  if (!Number.isFinite(numericProductId)) return null;
+
+  const payload = {
+    p_product_id: numericProductId,
+    p_event_type: eventType,
+    p_source: options.source || null,
+    p_order_id: options.orderId || null,
+    p_metadata: options.metadata || {},
+  };
+
+  const { data, error } = await supabase.rpc("track_product_event", payload);
+  if (error) throw error;
+  if (Array.isArray(data)) return data[0] || null;
+  return data || null;
+}
+
+function openAffiliateWithTracking(product, source) {
+  const href = normalizeAffiliateUrl(product.affiliate_link);
+  if (!href) return;
+
+  window.open(href, "_blank", "noopener,noreferrer");
+
+  trackProductEvent(product.id, "click", {
+    source,
+    metadata: {
+      page: window.location.pathname,
+      category: normalizeCategory(product.category),
+    },
+  }).catch((error) => {
+    console.error("Falha ao registrar click:", error);
+  });
+}
+
 function normalizeAffiliateUrl(value) {
   if (!value) return "";
   let raw = String(value).trim();
@@ -217,6 +252,10 @@ function render(products) {
     link.rel = "noopener noreferrer";
     link.href = normalizeAffiliateUrl(product.affiliate_link) || "#";
     link.textContent = "Ver oferta Mercado Livre";
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openAffiliateWithTracking(product, "vitrine_mercado_livre");
+    });
     content.appendChild(link);
 
     card.appendChild(content);

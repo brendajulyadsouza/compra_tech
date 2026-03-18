@@ -9,6 +9,41 @@ const FALLBACK_PRODUCT_IMAGE =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a5b78"/><stop offset="100%" stop-color="#1f355c"/></linearGradient></defs><rect width="800" height="800" fill="url(#g)"/><text x="400" y="420" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="42">Imagem indisponivel</text></svg>'
   );
 
+async function trackProductEvent(productId, eventType, options = {}) {
+  const numericProductId = Number(productId);
+  if (!Number.isFinite(numericProductId)) return null;
+
+  const payload = {
+    p_product_id: numericProductId,
+    p_event_type: eventType,
+    p_source: options.source || null,
+    p_order_id: options.orderId || null,
+    p_metadata: options.metadata || {},
+  };
+
+  const { data, error } = await supabase.rpc("track_product_event", payload);
+  if (error) throw error;
+  if (Array.isArray(data)) return data[0] || null;
+  return data || null;
+}
+
+function openAffiliateWithTracking(product, source) {
+  const href = normalizeAffiliateUrl(product.affiliate_link);
+  if (!href) return;
+
+  window.open(href, "_blank", "noopener,noreferrer");
+
+  trackProductEvent(product.id, "click", {
+    source,
+    metadata: {
+      page: window.location.pathname,
+      store: detectStore(product.affiliate_link),
+    },
+  }).catch((error) => {
+    console.error("Falha ao registrar click:", error);
+  });
+}
+
 function normalizeAffiliateUrl(value) {
   if (!value) return "";
   let raw = String(value).trim();
@@ -190,6 +225,10 @@ function createProductCard(product) {
     link.rel = "noopener noreferrer";
     link.href = normalizeAffiliateUrl(product.affiliate_link) || "#";
   link.textContent = "Ver oferta";
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    openAffiliateWithTracking(product, "vitrine_geral");
+  });
   content.appendChild(link);
 
   card.appendChild(content);

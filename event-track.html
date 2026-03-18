@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CompraTech - Event Tracking</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
+  <link rel="apple-touch-icon" href="./logo.png?v=2">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container auth-wrapper">
+    <section class="card auth-card admin-auth-card">
+      <a class="btn-secondary" href="index.html">Voltar para a vitrine</a>
+      <h1>Event Tracking</h1>
+      <p class="subtitle">
+        Endpoint publico para registrar eventos de clique e venda no painel admin.
+      </p>
+      <div id="event-status" class="status-message">Processando evento...</div>
+      <pre id="event-details" class="event-details" hidden></pre>
+      <a id="event-redirect-link" class="btn-primary" href="index.html" hidden>Continuar</a>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="event-track.js"></script>
+</body>
+</html>

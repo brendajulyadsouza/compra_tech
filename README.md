@@ -1,21 +1,18 @@
-﻿# CompraTech com Supabase (somente frontend)
+# CompraTech com Supabase (frontend + painel admin)
 
-## 1) Criar projeto no Supabase
+## 1) Criar tabela e migrar colunas
 
-Crie o projeto e a tabela `products` no Supabase. Execute:
+No Supabase SQL Editor, execute o arquivo `db-setup.sql` inteiro.
 
-```sql
-CREATE TABLE IF NOT EXISTS products (
-  id BIGSERIAL PRIMARY KEY,
-  affiliate_link TEXT NOT NULL,
-  title TEXT NOT NULL,
-  category TEXT NULL,
-  price NUMERIC(12,2) NULL,
-  image TEXT NULL,
-  description TEXT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+Ele cria/atualiza a tabela `products` com os campos:
+- `affiliate_link`, `title`, `category`, `price`, `image`, `description`
+- `clicks`, `sales`
+- `commission_pct`, `commission_value`
+- `created_at`, `updated_at`
+
+Tambem cria:
+- `product_events` (historico de eventos `click` e `sale`)
+- funcao RPC `track_product_event(...)` com deduplicacao de venda por `order_id`
 
 ## 2) Habilitar RLS + policies
 
@@ -49,7 +46,7 @@ using (true);
 
 ## 3) Criar usuario admin
 
-No Supabase: **Authentication → Users → Add user**.
+No Supabase: **Authentication -> Users -> Add user**.
 
 ## 4) Configurar Supabase no frontend
 
@@ -57,12 +54,38 @@ Edite `supabase-config.js` com:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
-## 5) Publicar
+## 5) Painel admin
 
-Hospede o projeto como site estatico (Vercel, Netlify, etc.).
+`admin.html` + `admin.js` incluem:
+- Dashboard com KPIs (produtos, cliques, vendas, comissao total)
+- Grafico animado de comissoes por mes
+- Cadastro automatico por link afiliado (titulo, preco, imagem, descricao)
+- Tentativa de puxar comissao automaticamente do Mercado Livre pelo link/produto
+- Gestao completa de produtos (editar, excluir, filtro, busca)
+- Calculo automatico de comissao por produto e acumulada
+- Notificacoes e atividades recentes
+- Template de URL para postback de eventos
 
-## Como funciona
+Observacao:
+- Nao existe comissao fixa no sistema.
+- Se a comissao nao vier automaticamente no link/produto, o painel exige preenchimento manual.
+- O campo "Comissao fallback (%)" nas configuracoes e opcional.
 
-- `admin.html` autentica via Supabase Auth.
-- `admin.js` cadastra/remove produtos direto no Supabase.
-- `index.html` e `mercado-livre.html` leem produtos direto do Supabase.
+## 6) Tracking real por evento
+
+Cliques:
+- A vitrine publica registra `click` automaticamente ao abrir o link afiliado.
+
+Vendas:
+- Use o endpoint publico `event-track.html` para registrar evento de `sale`.
+- URL base (template):
+  `https://SEU-DOMINIO/event-track.html?event=sale&product_id={ID}&order_id={ORDER_ID}&source=afiliado`
+- `order_id` evita venda duplicada para o mesmo pedido.
+- A funcao `track_product_event` ja recebe `GRANT EXECUTE` para `anon` e `authenticated`.
+
+Exemplo:
+`https://SEU-DOMINIO/event-track.html?event=sale&product_id=12&order_id=PED123&source=mercado_livre`
+
+## Regra importante
+
+A comissao aparece apenas no ADMIN. A vitrine publica (`index.html` / `mercado-livre.html`) nao exibe dados de comissao.

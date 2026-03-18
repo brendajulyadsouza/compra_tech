@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ADM - CompraTech</title>
+  <title>Admin - CompraTech</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
   <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
   <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
@@ -12,10 +12,10 @@
 </head>
 <body>
   <section id="login-gate" class="container auth-wrapper">
-    <section class="card auth-card">
+    <section class="card auth-card admin-auth-card">
       <a class="btn-secondary" href="index.html">Voltar para vitrine</a>
       <h1>Acesso Admin</h1>
-      <p class="subtitle">Entre para gerenciar produtos afiliados.</p>
+      <p class="subtitle">Entre para gerenciar produtos afiliados e acompanhar desempenho.</p>
       <form id="login-form" class="form">
         <label>
           Email admin
@@ -31,83 +31,241 @@
     </section>
   </section>
 
-  <div id="admin-app" hidden>
-    <div class="topbar">
-      <div class="topbar__inner">
-        <div class="brand">
-          <img src="logo.png" alt="CompraTech" class="brand__logo">
-          <span>Painel CompraTech</span>
-        </div>
-        <div class="admin-actions">
-          <a class="btn-secondary" href="index.html">Vitrine</a>
-          <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
+  <div id="admin-app" class="admin-shell" hidden>
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-brand">
+        <img src="logo.png" alt="CompraTech" class="brand__logo">
+        <div>
+          <p class="admin-brand__title">CompraTech Admin</p>
+          <span class="admin-brand__subtitle">Painel de afiliados</span>
         </div>
       </div>
-    </div>
 
-    <main class="container admin-layout">
-      <section class="card">
-        <h2 id="form-title">Novo produto</h2>
-        <p id="form-mode-hint" class="empty-state" hidden>Modo edicao ativo.</p>
-        <form id="product-form" class="form">
-          <label>
-            Link de afiliacao
-            <input id="affiliate-link" type="url" required placeholder="https://...">
-          </label>
-          <button id="auto-fill-btn" type="button" class="btn-secondary">Buscar dados do produto</button>
-          <label>
-            Titulo
-            <input id="title" type="text" required>
-          </label>
-          <label>
-            Categoria
-            <select id="category" required>
-              <option value="Eletronicos">Eletronicos</option>
-              <option value="Casa e Cozinha">Casa e Cozinha</option>
-              <option value="Informatica">Informatica</option>
-              <option value="Celulares">Celulares</option>
-              <option value="Games">Games</option>
-              <option value="Moda">Moda</option>
-              <option value="Beleza">Beleza</option>
-              <option value="Saude">Saude</option>
-              <option value="Pets">Pets</option>
-              <option value="Bebes">Bebes</option>
-              <option value="Esporte e Lazer">Esporte e Lazer</option>
-              <option value="Ferramentas">Ferramentas</option>
-              <option value="Outros">Outros</option>
-            </select>
-          </label>
-          <label id="category-custom-wrap" hidden>
-            Nome da categoria
-            <input id="category-custom" type="text" placeholder="Ex.: Pets">
-          </label>
-          <label>
-            Preco (R$)
-            <input id="price" type="number" step="0.01" min="0">
-          </label>
-          <label>
-            URL da imagem
-            <input id="image" type="url">
-          </label>
-          <label>
-            Descricao
-            <textarea id="description" rows="3"></textarea>
-          </label>
-          <div class="admin-actions">
-            <button id="save-btn" class="btn-primary" type="submit">Salvar produto</button>
-            <button id="cancel-edit-btn" class="btn-secondary" type="button" hidden>Cancelar edicao</button>
-          </div>
-        </form>
-        <p id="status-message" class="status-message"></p>
+      <nav class="admin-nav" aria-label="Navegação do admin">
+        <button class="admin-nav__item is-active" type="button" data-section="dashboard">Dashboard</button>
+        <button class="admin-nav__item" type="button" data-section="products">Produtos</button>
+        <button class="admin-nav__item" type="button" data-section="commissions">Comissões</button>
+        <button class="admin-nav__item" type="button" data-section="settings">Configurações</button>
+      </nav>
+
+      <div class="admin-sidebar__footer">
+        <a class="btn-secondary" href="index.html">Vitrine</a>
+        <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
+      </div>
+    </aside>
+
+    <main class="admin-main" id="admin-main">
+      <header class="admin-topbar">
+        <button id="sidebar-toggle" class="btn-secondary admin-mobile-menu" type="button" aria-expanded="false" aria-controls="admin-sidebar">Menu</button>
+        <div>
+          <h1 id="admin-title">Dashboard</h1>
+          <p class="subtitle" id="admin-subtitle">Resumo de produtos, cliques, vendas e comissões.</p>
+        </div>
+        <div class="admin-topbar__actions">
+          <button id="refresh-btn" class="btn-secondary" type="button">Atualizar dados</button>
+        </div>
+      </header>
+
+      <section class="admin-section" data-section="dashboard">
+        <div class="admin-stats">
+          <article class="stat-card">
+            <p>Total de produtos</p>
+            <h2 id="stat-products">0</h2>
+          </article>
+          <article class="stat-card">
+            <p>Total de cliques</p>
+            <h2 id="stat-clicks">0</h2>
+          </article>
+          <article class="stat-card">
+            <p>Total de vendas</p>
+            <h2 id="stat-sales">0</h2>
+          </article>
+          <article class="stat-card">
+            <p>Comissão acumulada</p>
+            <h2 id="stat-commission">R$ 0,00</h2>
+          </article>
+        </div>
+
+        <div class="admin-grid">
+          <section class="card">
+            <h2>Comissões por mês</h2>
+            <canvas id="commission-chart" height="150"></canvas>
+            <p class="empty-state" id="chart-empty" hidden>Nenhum dado de comissão para o período.</p>
+          </section>
+
+          <section class="card">
+            <h2>Atividades recentes</h2>
+            <ul class="activity-list" id="activity-list"></ul>
+            <p class="empty-state" id="activity-empty" hidden>Nenhuma atividade registrada.</p>
+          </section>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>Produtos cadastrados</h2>
-        <div id="admin-products-list" class="admin-products-list"></div>
-        <p id="admin-empty-state" class="empty-state">Voce ainda nao cadastrou produtos.</p>
+      <section class="admin-section" data-section="products" hidden>
+        <div class="admin-grid admin-grid--products">
+          <section class="card">
+            <h2 id="form-title">Novo produto</h2>
+            <p id="form-mode-hint" class="empty-state" hidden>Modo edição ativo.</p>
+            <form id="product-form" class="form">
+              <label>
+                Link de afiliação
+                <input id="affiliate-link" type="url" required placeholder="https://...">
+              </label>
+
+              <div class="form-row form-row--compact">
+                <button id="auto-fill-btn" type="button" class="btn-secondary">Buscar dados do produto</button>
+                <label class="inline-check">
+                  <input id="auto-save" type="checkbox">
+                  Salvar automaticamente
+                </label>
+              </div>
+
+              <label>
+                Título
+                <input id="title" type="text" required>
+              </label>
+
+              <label>
+                Categoria
+                <select id="category" required>
+                  <option value="Eletronicos">Eletronicos</option>
+                  <option value="Casa e Cozinha">Casa e Cozinha</option>
+                  <option value="Informatica">Informatica</option>
+                  <option value="Celulares">Celulares</option>
+                  <option value="Games">Games</option>
+                  <option value="Moda">Moda</option>
+                  <option value="Beleza">Beleza</option>
+                  <option value="Saude">Saude</option>
+                  <option value="Pets">Pets</option>
+                  <option value="Bebes">Bebes</option>
+                  <option value="Esporte e Lazer">Esporte e Lazer</option>
+                  <option value="Ferramentas">Ferramentas</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </label>
+
+              <label id="category-custom-wrap" hidden>
+                Nome da categoria
+                <input id="category-custom" type="text" placeholder="Ex.: Livros">
+              </label>
+
+              <div class="form-row">
+                <label>
+                  Preço (R$)
+                  <input id="price" type="number" step="0.01" min="0">
+                </label>
+                <label>
+                  Comissão (%)
+                  <input id="commission-pct" type="number" step="0.01" min="0" placeholder="Automatico pelo link">
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Comissão por venda (R$)
+                  <input id="commission-value" type="text" readonly>
+                </label>
+                <label>
+                  Vendas
+                  <input id="sales" type="number" min="0" value="0">
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  Cliques
+                  <input id="clicks" type="number" min="0" value="0">
+                </label>
+                <label>
+                  Comissão total do produto (R$)
+                  <input id="commission-total" type="text" readonly>
+                </label>
+              </div>
+
+              <label>
+                URL da imagem
+                <input id="image" type="url">
+              </label>
+
+              <label>
+                Descrição
+                <textarea id="description" rows="3"></textarea>
+              </label>
+
+              <div class="admin-actions">
+                <button id="save-btn" class="btn-primary" type="submit">Salvar produto</button>
+                <button id="cancel-edit-btn" class="btn-secondary" type="button" hidden>Cancelar edição</button>
+              </div>
+            </form>
+            <p id="status-message" class="status-message"></p>
+          </section>
+
+          <section class="card">
+            <div class="section-head section-head--inline">
+              <h2>Produtos cadastrados</h2>
+              <div class="form-row form-row--compact">
+                <select id="filter-category" class="select-compact">
+                  <option value="Todas">Todas as categorias</option>
+                </select>
+                <input id="search-products" class="input-compact" type="search" placeholder="Buscar por título">
+              </div>
+            </div>
+
+            <div id="admin-products-list" class="admin-products-list"></div>
+            <p id="admin-empty-state" class="empty-state">Você ainda não cadastrou produtos.</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="admin-section" data-section="commissions" hidden>
+        <section class="card">
+          <h2>Resumo de comissões</h2>
+          <p class="subtitle">Acompanhe desempenho por produto. Estes dados não aparecem na vitrine pública.</p>
+          <div id="commission-summary" class="commission-summary"></div>
+          <p id="commission-empty" class="empty-state" hidden>Nenhuma comissão registrada.</p>
+        </section>
+      </section>
+
+      <section class="admin-section" data-section="settings" hidden>
+        <section class="card">
+          <h2>Configurações</h2>
+          <p class="subtitle">Preferências do painel administrativo.</p>
+
+          <form id="settings-form" class="form settings-form">
+            <div class="form-row">
+              <label>
+                Comissão fallback (%) - opcional
+                <input id="setting-default-commission" type="number" min="0" step="0.01" placeholder="Ex.: 5.5">
+              </label>
+              <label class="inline-check inline-check--stacked">
+                <input id="setting-auto-save" type="checkbox">
+                Habilitar auto-salvar após auto-preenchimento
+              </label>
+            </div>
+            <button class="btn-primary" type="submit">Salvar configurações</button>
+          </form>
+
+          <div class="settings-grid">
+            <div class="settings-card">
+              <h3>Email admin</h3>
+              <p id="admin-email">-</p>
+            </div>
+            <div class="settings-card">
+              <h3>Automação por link</h3>
+              <p>Cole o link afiliado para preencher título, preço, imagem e descrição automaticamente.</p>
+            </div>
+            <div class="settings-card">
+              <h3>URL de evento</h3>
+              <p id="event-url-template">-</p>
+              <button id="copy-event-url-btn" class="btn-secondary" type="button">Copiar template</button>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   </div>
+
+  <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script src="supabase-config.js"></script>
