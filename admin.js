@@ -192,11 +192,21 @@ async function fetchProductDataFromLink(link) {
     const response = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
     if (response.ok) {
       const data = await response.json();
+      let descriptionText = "";
+      try {
+        const descResponse = await fetch(`https://api.mercadolibre.com/items/${itemId}/description`);
+        if (descResponse.ok) {
+          const descData = await descResponse.json();
+          descriptionText = descData?.plain_text || descData?.text || "";
+        }
+      } catch {
+        // ignore description fetch failures
+      }
       return {
         title: data.title || "",
         price: data.price || "",
         image: data.thumbnail || "",
-        description: data.warranty || "",
+        description: descriptionText || data.warranty || "",
       };
     }
   }
