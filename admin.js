@@ -22,54 +22,9 @@ const inputPrice = document.getElementById("price");
 const inputImage = document.getElementById("image");
 const inputDescription = document.getElementById("description");
 
-const API_BASE = window.API_BASE || "";
-const TOKEN_KEY = "compraTechToken";
+const supabase = window.supabaseClient;
 let currentEditingId = null;
 let cachedProducts = [];
-
-function buildApiUrl(path) {
-  return `${API_BASE}${path}`;
-}
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function setToken(value) {
-  if (!value) {
-    localStorage.removeItem(TOKEN_KEY);
-    return;
-  }
-  localStorage.setItem(TOKEN_KEY, value);
-}
-
-async function apiRequest(path, options = {}) {
-  const headers = { ...(options.headers || {}) };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (options.body && !(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const response = await fetch(buildApiUrl(path), {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let message = "Erro na requisicao.";
-    try {
-      const data = await response.json();
-      if (data?.error) message = data.error;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
-  }
-
-  if (response.status === 204) return null;
-  return response.json();
-}
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -124,8 +79,30 @@ function normalizeCategory(value) {
   return text || "Sem categoria";
 }
 
-function renderProductsList(products) {
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function loadProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, affiliate_link, title, category, price, image, description, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error("Falha ao carregar produtos.");
+  return Array.isArray(data) ? data : [];
+}
+
+async function renderAdminProducts() {
   adminProductsList.innerHTML = "";
+  const products = await loadProducts();
+  cachedProducts = products;
+
   if (!products.length) {
     adminEmptyState.style.display = "block";
     return;
@@ -138,8 +115,8 @@ function renderProductsList(products) {
     row.className = "admin-row";
     row.innerHTML = `
       <div>
-        <h3>${product.title || "Produto"}</h3>
-        <p>${normalizeCategory(product.category)}</p>
+        <h3>${escapeHtml(product.title || "Produto")}</h3>
+        <p>${escapeHtml(normalizeCategory(product.category))}</p>
         <p>${product.price !== null && product.price !== undefined ? formatBRL(product.price) : "Preco nao informado"}</p>
       </div>
       <div class="admin-actions">
@@ -171,8 +148,9 @@ function renderProductsList(products) {
     button.addEventListener("click", async () => {
       try {
         const id = button.getAttribute("data-product-id");
-        await apiRequest(`/api/products/${id}`, { method: "DELETE" });
-        await loadAndRenderProducts();
+        const { error } = await supabase.from("products").delete().eq("id", id);
+        if (error) throw new Error("Falha ao remover produto.");
+        await renderAdminProducts();
         setStatus("Produto removido.");
       } catch (error) {
         setStatus(error.message || "Falha ao remover produto.", true);
@@ -181,35 +159,27 @@ function renderProductsList(products) {
   });
 }
 
-async function loadAndRenderProducts() {
-  const data = await apiRequest("/api/products");
-  cachedProducts = Array.isArray(data) ? data : [];
-  renderProductsList(cachedProducts);
-}
-
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  try {
-    const result = await apiRequest("/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        user: loginUser.value.trim(),
-        pass: loginPass.value,
-      }),
-    });
-    if (!result?.token) throw new Error("Falha no login.");
-    setToken(result.token);
-    loginForm.reset();
-    setLoginStatus("Acesso liberado.");
-    showAdmin();
-    await loadAndRenderProducts();
-  } catch (error) {
-    setLoginStatus(error.message || "Falha no login.", true);
+  setLoginStatus("Entrando...");
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: loginUser.value.trim(),
+    password: loginPass.value,
+  });
+
+  if (error || !data?.session) {
+    setLoginStatus("Falha no login. Verifique email e senha.", true);
+    return;
   }
+
+  loginForm.reset();
+  setLoginStatus("Acesso liberado.");
+  showAdmin();
+  await renderAdminProducts();
 });
 
-logoutBtn.addEventListener("click", () => {
-  setToken(null);
+logoutBtn.addEventListener("click", async () => {
+  await supabase.auth.signOut();
   showLogin();
   setLoginStatus("Sessao encerrada.");
 });
@@ -227,41 +197,30 @@ form.addEventListener("submit", async (event) => {
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
   if (!title) return setStatus("Titulo e obrigatorio.", true);
 
+  const payload = {
+    affiliate_link: affiliateLink,
+    title,
+    category,
+    price,
+    image,
+    description,
+  };
+
   try {
     const wasEditing = Boolean(currentEditingId);
-    const payload = {
-      affiliate_link: affiliateLink,
-      title,
-      category,
-      price,
-      image,
-      description,
-    };
-
     if (currentEditingId) {
-      await apiRequest(`/api/products/${currentEditingId}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
+      const { error } = await supabase.from("products").update(payload).eq("id", currentEditingId);
+      if (error) throw new Error("Nao foi possivel atualizar produto.");
     } else {
-      await apiRequest("/api/products", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const { error } = await supabase.from("products").insert(payload);
+      if (error) throw new Error("Nao foi possivel salvar produto.");
     }
 
     resetProductForm();
-    await loadAndRenderProducts();
+    await renderAdminProducts();
     setStatus(wasEditing ? "Produto atualizado com sucesso." : "Produto salvo e publicado na vitrine.");
   } catch (error) {
-    const message = error.message || "Nao foi possivel salvar produto.";
-    if (/Nao autorizado|Sessao expirada/i.test(message)) {
-      setToken(null);
-      showLogin();
-      setLoginStatus("Sua sessao expirou. Entre novamente.", true);
-      return;
-    }
-    setStatus(message, true);
+    setStatus(error.message || "Nao foi possivel salvar produto.", true);
   }
 });
 
@@ -271,21 +230,14 @@ cancelEditBtn.addEventListener("click", () => {
 });
 
 async function initAuth() {
-  try {
-    const token = getToken();
-    if (!token) {
-      showLogin();
-      setLoginStatus("Use seu usuario e senha de admin.");
-      return;
-    }
-    await apiRequest("/api/auth/check");
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
     showAdmin();
-    await loadAndRenderProducts();
-  } catch {
-    setToken(null);
-    showLogin();
-    setLoginStatus("Use seu usuario e senha de admin.");
+    await renderAdminProducts();
+    return;
   }
+  showLogin();
+  setLoginStatus("Use seu email e senha de admin.");
 }
 
 resetProductForm();

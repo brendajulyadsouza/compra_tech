@@ -1,7 +1,7 @@
 const mlGrid = document.getElementById("ml-only-grid");
 const mlEmpty = document.getElementById("ml-only-empty");
 const mlCategoryFilters = document.getElementById("ml-category-filters");
-const API_BASE = window.API_BASE || "";
+const supabase = window.supabaseClient;
 const FALLBACK_PRODUCT_IMAGE =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -147,9 +147,11 @@ function applyImageFallbacks(img, sources) {
 }
 
 async function fetchProducts() {
-  const response = await fetch(`${API_BASE}/api/products`);
-  if (!response.ok) throw new Error("Nao foi possivel carregar produtos.");
-  const data = await response.json();
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, affiliate_link, title, category, price, image, description, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Nao foi possivel carregar produtos.");
   return Array.isArray(data) ? data : [];
 }
 
