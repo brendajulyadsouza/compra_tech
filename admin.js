@@ -469,6 +469,7 @@ inputAffiliateLink.addEventListener("input", () => {
 });
 
 async function initAuth() {
+  await supabase.auth.signOut();
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
   const email = session?.user?.email || "";
