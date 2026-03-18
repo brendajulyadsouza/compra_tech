@@ -1,43 +1,68 @@
-﻿# CompraTech com PostgreSQL + Node
+﻿# CompraTech com Supabase (somente frontend)
 
-## 1) Criar a base e tabela
+## 1) Criar projeto no Supabase
 
-Crie o banco no PostgreSQL e rode `db-setup.sql`.
+Crie o projeto e a tabela `products` no Supabase. Execute:
 
-## 2) Configurar .env
-
-Edite `.env` com os dados do seu PostgreSQL (ou use `DATABASE_URL` no Render):
-
-- `DB_HOST`
-- `DB_PORT`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASS`
-- `DATABASE_URL` (opcional)
-
-Defina tambem:
-- `ADMIN_USER`
-- `ADMIN_PASS`
-- `JWT_SECRET`
-
-## 3) Instalar dependencias
-
-```bash
-npm install
+```sql
+CREATE TABLE IF NOT EXISTS products (
+  id BIGSERIAL PRIMARY KEY,
+  affiliate_link TEXT NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NULL,
+  price NUMERIC(12,2) NULL,
+  image TEXT NULL,
+  description TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
-## 4) Rodar servidor
+## 2) Habilitar RLS + policies
 
-```bash
-npm run dev
+Ative RLS na tabela `products` e rode:
+
+```sql
+create policy "public read"
+on public.products
+for select
+to anon
+using (true);
+
+create policy "authenticated insert"
+on public.products
+for insert
+to authenticated
+with check (true);
+
+create policy "authenticated update"
+on public.products
+for update
+to authenticated
+using (true);
+
+create policy "authenticated delete"
+on public.products
+for delete
+to authenticated
+using (true);
 ```
 
-Acesse:
-- Vitrine: `http://localhost:3000/index.html`
-- Admin: `http://localhost:3000/admin.html`
+## 3) Criar usuario admin
+
+No Supabase: **Authentication → Users → Add user**.
+
+## 4) Configurar Supabase no frontend
+
+Edite `supabase-config.js` com:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+## 5) Publicar
+
+Hospede o projeto como site estatico (Vercel, Netlify, etc.).
 
 ## Como funciona
 
-- `server.js` expoe a API e serve os arquivos estaticos.
-- `admin.html` faz login via `/api/login` e cadastra/remove produtos.
-- `index.html` e `mercado-livre.html` consomem `/api/products`.
+- `admin.html` autentica via Supabase Auth.
+- `admin.js` cadastra/remove produtos direto no Supabase.
+- `index.html` e `mercado-livre.html` leem produtos direto do Supabase.
