@@ -3,35 +3,33 @@ const adminApp = document.getElementById("admin-app");
 const loginForm = document.getElementById("login-form");
 const loginUser = document.getElementById("login-user");
 const loginPass = document.getElementById("login-pass");
-const lampToggle = document.getElementById("lamp-toggle");
-const lampText = document.getElementById("lamp-text");
 const loginStatus = document.getElementById("login-status");
 const logoutBtn = document.getElementById("logout-btn");
 
 const form = document.getElementById("product-form");
-const autoFillBtn = document.getElementById("auto-fill-btn");
 const statusMessage = document.getElementById("status-message");
 const adminProductsList = document.getElementById("admin-products-list");
 const adminEmptyState = document.getElementById("admin-empty-state");
-
-const inputAffiliateLink = document.getElementById("affiliate-link");
-const inputTitle = document.getElementById("title");
-const inputPrice = document.getElementById("price");
-const inputImage = document.getElementById("image");
-const inputDescription = document.getElementById("description");
-const inputCategory = document.getElementById("category");
-const inputCategoryCustom = document.getElementById("category-custom");
-const inputCategoryCustomWrap = document.getElementById("category-custom-wrap");
 const formTitle = document.getElementById("form-title");
 const formModeHint = document.getElementById("form-mode-hint");
 const saveBtn = document.getElementById("save-btn");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 
-const DEFAULT_CATEGORY = "Eletronicos";
+const inputAffiliateLink = document.getElementById("affiliate-link");
+const inputTitle = document.getElementById("title");
+const inputCategory = document.getElementById("category");
+const inputPrice = document.getElementById("price");
+const inputImage = document.getElementById("image");
+const inputDescription = document.getElementById("description");
+
 const API_BASE = window.API_BASE || "";
 const TOKEN_KEY = "compraTechToken";
 let currentEditingId = null;
 let cachedProducts = [];
+
+function buildApiUrl(path) {
+  return `${API_BASE}${path}`;
+}
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -43,10 +41,6 @@ function setToken(value) {
     return;
   }
   localStorage.setItem(TOKEN_KEY, value);
-}
-
-function buildApiUrl(path) {
-  return `${API_BASE}${path}`;
 }
 
 async function apiRequest(path, options = {}) {
@@ -77,15 +71,6 @@ async function apiRequest(path, options = {}) {
   return response.json();
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
   statusMessage.style.color = isError ? "#b91c1c" : "#0f766e";
@@ -94,272 +79,6 @@ function setStatus(message, isError = false) {
 function setLoginStatus(message, isError = false) {
   loginStatus.textContent = message;
   loginStatus.style.color = isError ? "#b91c1c" : "#0f766e";
-}
-
-function initLampToggle() {
-  if (!lampToggle || !loginPass) return;
-  const setLampState = (isOn) => {
-    lampToggle.classList.toggle("is-on", isOn);
-    lampToggle.setAttribute("aria-pressed", String(isOn));
-    lampToggle.setAttribute("aria-label", isOn ? "Ocultar senha" : "Mostrar senha");
-    if (lampText) lampText.textContent = isOn ? "Ocultar senha" : "Ver senha";
-    loginPass.type = isOn ? "text" : "password";
-  };
-  setLampState(false);
-  lampToggle.addEventListener("click", () => {
-    const isOn = lampToggle.classList.contains("is-on");
-    setLampState(!isOn);
-  });
-}
-
-function normalizeCategory(value) {
-  const text = String(value || "").trim();
-  return text || DEFAULT_CATEGORY;
-}
-
-function setCategoryValue(value) {
-  const category = normalizeCategory(value);
-  const option = Array.from(inputCategory.options).find((item) => item.value === category);
-  if (option) {
-    inputCategory.value = option.value;
-    inputCategoryCustomWrap.hidden = true;
-    inputCategoryCustom.value = "";
-    return;
-  }
-  inputCategory.value = "Outros";
-  inputCategoryCustomWrap.hidden = false;
-  inputCategoryCustom.value = category;
-}
-
-function getCategoryValue() {
-  if (inputCategory.value === "Outros") return normalizeCategory(inputCategoryCustom.value);
-  return normalizeCategory(inputCategory.value);
-}
-
-function inferCategoryFromText(text) {
-  const value = String(text || "").toLowerCase();
-  if (!value) return DEFAULT_CATEGORY;
-  if (/(smartphone|celular|iphone|samsung|xiaomi|motorola)/i.test(value)) return "Celulares";
-  if (/(notebook|pc|computador|monitor|teclado|mouse|ssd|hd)/i.test(value)) return "Informatica";
-  if (/(console|playstation|xbox|nintendo|jogo|gamer)/i.test(value)) return "Games";
-  if (/(liquidificador|cafeteira|cozinha|panela|casa|lar)/i.test(value)) return "Casa e Cozinha";
-  if (/(bebe|bebê|bebes|bebês|fralda|mamadeira|chupeta|berco|berço|carrinho)/i.test(value)) return "Bebes";
-  if (/(camisa|tenis|moda|roupa|vestido|bermuda)/i.test(value)) return "Moda";
-  if (/(perfume|maquiagem|skincare|beleza|cabelo)/i.test(value)) return "Beleza";
-  if (/(saude|saúde|vitamina|suplemento|farmacia|farmácia|medicamento)/i.test(value)) return "Saude";
-  if (/(pet|pets|racao|ração|cachorro|gato|coleira|areia)/i.test(value)) return "Pets";
-  if (/(bike|bicicleta|academia|esporte|futebol|lazer)/i.test(value)) return "Esporte e Lazer";
-  if (/(furadeira|parafusadeira|ferramenta|chave|serra)/i.test(value)) return "Ferramentas";
-  return "Eletronicos";
-}
-
-function isValidUrl(value) {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isHttpOnlyUrl(value) {
-  try {
-    return new URL(String(value).trim()).protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
-function normalizeUrl(value) {
-  if (!value) return "";
-  let raw = String(value).trim();
-  for (let i = 0; i < 3; i += 1) {
-    try {
-      const decoded = decodeURIComponent(raw);
-      if (decoded === raw) break;
-      raw = decoded;
-    } catch {
-      break;
-    }
-  }
-  if (raw.startsWith("www.")) raw = `https://${raw}`;
-  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
-  try {
-    let parsed = new URL(raw);
-    const redirectKeys = ["url", "target", "redirect", "redirect_url", "to", "link"];
-    for (const key of redirectKeys) {
-      const candidate = parsed.searchParams.get(key);
-      if (candidate && /^https?:\/\//i.test(candidate)) {
-        parsed = new URL(candidate);
-        break;
-      }
-    }
-    if (parsed.protocol === "http:") parsed.protocol = "https:";
-    return parsed.toString();
-  } catch {
-    return "";
-  }
-}
-
-function isLikelyIconUrl(urlValue) {
-  const value = String(urlValue || "").toLowerCase();
-  return (
-    value.includes("logo") ||
-    value.includes("favicon") ||
-    value.includes("icon") ||
-    value.includes("apple-touch") ||
-    value.endsWith(".ico")
-  );
-}
-
-function isMercadoLivreLink(value) {
-  try {
-    const host = new URL(normalizeUrl(value)).hostname.toLowerCase();
-    return (
-      host.includes("mercadolivre") ||
-      host.includes("mercadolibre") ||
-      host === "meli.la" ||
-      host.endsWith(".meli.la")
-    );
-  } catch {
-    return false;
-  }
-}
-
-function previewScreenshotFromLink(link) {
-  const normalized = normalizeUrl(link);
-  if (!normalized) return "";
-  return `https://image.microlink.io/?url=${encodeURIComponent(normalized)}&screenshot=false&meta=true`;
-}
-
-function decodeDeep(value, rounds = 3) {
-  let current = String(value);
-  for (let i = 0; i < rounds; i += 1) {
-    try {
-      const decoded = decodeURIComponent(current);
-      if (decoded === current) break;
-      current = decoded;
-    } catch {
-      break;
-    }
-  }
-  return current;
-}
-
-function findItemIdInText(text) {
-  const match = String(text).match(/\b(ML[A-Z]{1,3}\d{6,})\b/i);
-  return match?.[1]?.toUpperCase() || null;
-}
-
-function extractItemId(url) {
-  const candidates = [String(url), decodeDeep(url)];
-
-  for (const candidate of candidates) {
-    const direct = findItemIdInText(candidate);
-    if (direct) return direct;
-
-    try {
-      const parsed = new URL(candidate);
-      const pieces = [parsed.pathname, parsed.hash];
-
-      for (const piece of pieces) {
-        const found = findItemIdInText(decodeDeep(piece));
-        if (found) return found;
-      }
-
-      for (const [, value] of parsed.searchParams.entries()) {
-        const found = findItemIdInText(decodeDeep(value));
-        if (found) return found;
-      }
-    } catch {
-      // Ignore parse errors and continue with other candidates.
-    }
-  }
-
-  return null;
-}
-
-async function tryResolveFinalUrl(link) {
-  try {
-    const response = await fetch(link, { redirect: "follow" });
-    if (response?.url) return response.url;
-  } catch {
-    // Some affiliate domains block CORS in browser; fallback to original link.
-  }
-  return link;
-}
-
-function buildTitleFromUrl(link) {
-  try {
-    const parsed = new URL(link);
-    const lastPath = parsed.pathname.split("/").filter(Boolean).pop() || "";
-    const decoded = decodeDeep(lastPath)
-      .replace(/[-_]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (decoded) return decoded.slice(0, 100);
-    return `Produto de ${parsed.hostname}`;
-  } catch {
-    return "Produto afiliado";
-  }
-}
-
-async function fetchLinkPreviewData(link) {
-  try {
-    const normalized = normalizeUrl(link) || link;
-    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(normalized)}`;
-    const response = await fetch(endpoint);
-    if (!response.ok) return null;
-    const result = await response.json();
-    const data = result?.data;
-    if (!data) return null;
-    const imageCandidate = normalizeUrl(data.image?.url || data.logo?.url || "");
-    const image = imageCandidate && !isLikelyIconUrl(imageCandidate)
-      ? imageCandidate
-      : previewScreenshotFromLink(normalized);
-    return {
-      title: data.title || "",
-      price: "",
-      image,
-      description: data.description || "",
-      source: "preview",
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchProductDataFromLink(link) {
-  let itemId = extractItemId(link);
-  if (!itemId) {
-    const resolvedUrl = await tryResolveFinalUrl(link);
-    itemId = extractItemId(resolvedUrl);
-  }
-
-  if (itemId) {
-    const response = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        title: data.title || "",
-        price: data.price || "",
-        image: data.thumbnail || "",
-        description: data.warranty || "",
-        source: "meli_api",
-      };
-    }
-  }
-
-  const preview = await fetchLinkPreviewData(link);
-  if (preview) return preview;
-
-  return {
-    title: buildTitleFromUrl(link),
-    price: "",
-    image: "",
-    description: "",
-    source: "fallback",
-  };
 }
 
 function showAdmin() {
@@ -388,36 +107,25 @@ function setFormModeEditing(isEditing) {
 
 function resetProductForm() {
   form.reset();
-  setCategoryValue(DEFAULT_CATEGORY);
   currentEditingId = null;
   setFormModeEditing(false);
 }
 
-function startEditingProduct(productId) {
-  const product = cachedProducts.find((item) => String(item.id) === String(productId));
-  if (!product) return;
-  currentEditingId = product.id;
-  setFormModeEditing(true);
-  inputAffiliateLink.value = product.affiliate_link || "";
-  inputTitle.value = product.title || "";
-  inputPrice.value = product.price ?? "";
-  inputImage.value = product.image || "";
-  inputDescription.value = product.description || "";
-  setCategoryValue(product.category || DEFAULT_CATEGORY);
-  setStatus("Produto carregado para edicao.");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+function normalizeUrl(value) {
+  if (!value) return "";
+  let raw = String(value).trim();
+  if (raw.startsWith("www.")) raw = `https://${raw}`;
+  if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+  return raw;
 }
 
-async function loadProducts() {
-  const data = await apiRequest("/api/products");
-  return Array.isArray(data) ? data : [];
+function normalizeCategory(value) {
+  const text = String(value || "").trim();
+  return text || "Sem categoria";
 }
 
-async function renderAdminProducts() {
+function renderProductsList(products) {
   adminProductsList.innerHTML = "";
-  const products = await loadProducts();
-  cachedProducts = products;
-
   if (!products.length) {
     adminEmptyState.style.display = "block";
     return;
@@ -425,13 +133,13 @@ async function renderAdminProducts() {
 
   adminEmptyState.style.display = "none";
 
-  for (const product of products) {
+  products.forEach((product) => {
     const row = document.createElement("div");
     row.className = "admin-row";
     row.innerHTML = `
       <div>
-        <h3>${escapeHtml(product.title)}</h3>
-        <p>${escapeHtml(normalizeCategory(product.category || DEFAULT_CATEGORY))}</p>
+        <h3>${product.title || "Produto"}</h3>
+        <p>${normalizeCategory(product.category)}</p>
         <p>${product.price !== null && product.price !== undefined ? formatBRL(product.price) : "Preco nao informado"}</p>
       </div>
       <div class="admin-actions">
@@ -440,12 +148,22 @@ async function renderAdminProducts() {
       </div>
     `;
     adminProductsList.appendChild(row);
-  }
+  });
 
   adminProductsList.querySelectorAll("[data-edit-product-id]").forEach((button) => {
     button.addEventListener("click", () => {
       const id = button.getAttribute("data-edit-product-id");
-      startEditingProduct(id);
+      const product = cachedProducts.find((item) => String(item.id) === String(id));
+      if (!product) return;
+      currentEditingId = product.id;
+      setFormModeEditing(true);
+      inputAffiliateLink.value = product.affiliate_link || "";
+      inputTitle.value = product.title || "";
+      inputCategory.value = product.category || "";
+      inputPrice.value = product.price ?? "";
+      inputImage.value = product.image || "";
+      inputDescription.value = product.description || "";
+      setStatus("Produto carregado para edicao.");
     });
   });
 
@@ -454,7 +172,7 @@ async function renderAdminProducts() {
       try {
         const id = button.getAttribute("data-product-id");
         await apiRequest(`/api/products/${id}`, { method: "DELETE" });
-        await renderAdminProducts();
+        await loadAndRenderProducts();
         setStatus("Produto removido.");
       } catch (error) {
         setStatus(error.message || "Falha ao remover produto.", true);
@@ -463,37 +181,10 @@ async function renderAdminProducts() {
   });
 }
 
-async function fillByAffiliateLink() {
-  const link = inputAffiliateLink.value.trim();
-  if (!link) {
-    setStatus("Informe o link de afiliacao primeiro.", true);
-    return;
-  }
-  if (!isValidUrl(link)) {
-    setStatus("Informe um link valido (http/https).", true);
-    return;
-  }
-  if (!isMercadoLivreLink(link)) {
-    setStatus("Use apenas link de afiliacao do Mercado Livre.", true);
-    return;
-  }
-
-  setStatus("Buscando dados do produto...");
-  try {
-    const data = await fetchProductDataFromLink(link);
-    inputTitle.value = data.title || "";
-    inputPrice.value = data.price || "";
-    inputImage.value = normalizeUrl(data.image) || previewScreenshotFromLink(link) || "";
-    inputDescription.value = data.description || "";
-    setCategoryValue(inferCategoryFromText(`${data.title} ${data.description}`));
-    if (isHttpOnlyUrl(data.image)) {
-      setStatus("Imagem em http detectada: convertida automaticamente para https.", false);
-      return;
-    }
-    setStatus(data.source === "meli_api" ? "Dados preenchidos automaticamente." : "Preenchimento parcial aplicado.");
-  } catch (error) {
-    setStatus(error.message || "Nao foi possivel preencher automatico.", true);
-  }
+async function loadAndRenderProducts() {
+  const data = await apiRequest("/api/products");
+  cachedProducts = Array.isArray(data) ? data : [];
+  renderProductsList(cachedProducts);
 }
 
 loginForm.addEventListener("submit", async (event) => {
@@ -511,13 +202,13 @@ loginForm.addEventListener("submit", async (event) => {
     loginForm.reset();
     setLoginStatus("Acesso liberado.");
     showAdmin();
-    await renderAdminProducts();
+    await loadAndRenderProducts();
   } catch (error) {
     setLoginStatus(error.message || "Falha no login.", true);
   }
 });
 
-logoutBtn.addEventListener("click", async () => {
+logoutBtn.addEventListener("click", () => {
   setToken(null);
   showLogin();
   setLoginStatus("Sessao encerrada.");
@@ -526,48 +217,25 @@ logoutBtn.addEventListener("click", async () => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const affiliateLink = inputAffiliateLink.value.trim();
-  let title = inputTitle.value.trim();
-  let price = inputPrice.value;
-  const rawImage = inputImage.value.trim();
-  let image = normalizeUrl(rawImage);
-  let description = inputDescription.value.trim();
-  const category = getCategoryValue();
+  const affiliateLink = normalizeUrl(inputAffiliateLink.value.trim());
+  const title = inputTitle.value.trim();
+  const category = normalizeCategory(inputCategory.value);
+  const price = inputPrice.value === "" ? null : Number(inputPrice.value);
+  const image = normalizeUrl(inputImage.value.trim());
+  const description = inputDescription.value.trim();
 
   if (!affiliateLink) return setStatus("Link de afiliacao e obrigatorio.", true);
-  if (!isValidUrl(affiliateLink)) return setStatus("Informe um link valido (http/https).", true);
-  if (!isMercadoLivreLink(affiliateLink)) return setStatus("Use apenas link de afiliacao do Mercado Livre.", true);
-  if (inputCategory.value === "Outros" && !inputCategoryCustom.value.trim()) {
-    return setStatus("Informe o nome da categoria personalizada.", true);
-  }
-
-  if (!title) {
-    try {
-      const data = await fetchProductDataFromLink(affiliateLink);
-      title = data.title || "";
-      price = price || data.price || "";
-      image = image || data.image || "";
-      description = description || data.description || "";
-    } catch {
-      // fallback
-    }
-  }
   if (!title) return setStatus("Titulo e obrigatorio.", true);
-  if (!image) image = previewScreenshotFromLink(affiliateLink);
-  if (image && !isValidUrl(image)) return setStatus("URL da imagem invalida.", true);
-  if (rawImage && isHttpOnlyUrl(rawImage)) {
-    setStatus("Imagem em http detectada: convertida para https antes de salvar.");
-  }
 
   try {
     const wasEditing = Boolean(currentEditingId);
     const payload = {
-      affiliate_link: normalizeUrl(affiliateLink) || affiliateLink,
+      affiliate_link: affiliateLink,
       title,
-      price: price === "" ? null : Number(price),
+      category,
+      price,
       image,
       description,
-      category,
     };
 
     if (currentEditingId) {
@@ -583,7 +251,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     resetProductForm();
-    await renderAdminProducts();
+    await loadAndRenderProducts();
     setStatus(wasEditing ? "Produto atualizado com sucesso." : "Produto salvo e publicado na vitrine.");
   } catch (error) {
     const message = error.message || "Nao foi possivel salvar produto.";
@@ -597,11 +265,6 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-autoFillBtn.addEventListener("click", fillByAffiliateLink);
-inputCategory.addEventListener("change", () => {
-  inputCategoryCustomWrap.hidden = inputCategory.value !== "Outros";
-  if (inputCategory.value !== "Outros") inputCategoryCustom.value = "";
-});
 cancelEditBtn.addEventListener("click", () => {
   resetProductForm();
   setStatus("Edicao cancelada.");
@@ -617,7 +280,7 @@ async function initAuth() {
     }
     await apiRequest("/api/auth/check");
     showAdmin();
-    await renderAdminProducts();
+    await loadAndRenderProducts();
   } catch {
     setToken(null);
     showLogin();
@@ -625,11 +288,5 @@ async function initAuth() {
   }
 }
 
-initLampToggle();
 resetProductForm();
 initAuth();
-
-
-
-
-
