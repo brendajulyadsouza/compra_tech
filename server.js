@@ -5,6 +5,7 @@ const path = require("path");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const dns = require("dns").promises;
 
 const {
   PORT = 3000,
@@ -31,23 +32,36 @@ if (!DATABASE_URL && (!DB_HOST || !DB_USER || !DB_NAME)) {
 }
 
 const useSsl = Boolean(DATABASE_URL);
-const pool = new Pool(
-  DATABASE_URL
-    ? {
-        connectionString: DATABASE_URL,
-        family: 4,
-        ssl: { rejectUnauthorized: false },
-      }
-    : {
-        host: DB_HOST,
-        user: DB_USER,
-        password: DB_PASS,
-        database: DB_NAME,
-        port: Number(DB_PORT),
-        family: 4,
-        ssl: useSsl ? { rejectUnauthorized: false } : undefined,
-      }
-);
+
+async function buildPool() {
+  if (DATABASE_URL) {
+    const parsed = new URL(DATABASE_URL);
+    const { address } = await dns.lookup(parsed.hostname, { family: 4 });
+    return new Pool({
+      host: address,
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      database: parsed.pathname.replace(/^\//, "") || "postgres",
+      port: Number(parsed.port) || 5432,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+
+  const { address } = await dns.lookup(DB_HOST, { family: 4 });
+  return new Pool({
+    host: address,
+    user: DB_USER,
+    password: DB_PASS,
+    database: DB_NAME,
+    port: Number(DB_PORT),
+    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+  });
+}
+
+const poolPromise = buildPool().catch((error) => {
+  console.error("Falha ao iniciar conexao com o banco:", error);
+  process.exit(1);
+});
 
 const app = express();
 
@@ -108,6 +122,7 @@ app.get("/api/auth/check", requireAuth, (req, res) => {
 
 app.get("/api/products", async (req, res) => {
   try {
+    const pool = await poolPromise;
     const { rows } = await pool.query(
       "SELECT id, affiliate_link, title, category, price, image, description, created_at FROM products ORDER BY created_at DESC"
     );
@@ -120,6 +135,7 @@ app.get("/api/products", async (req, res) => {
 
 app.post("/api/products", requireAuth, async (req, res) => {
   try {
+    const pool = await poolPromise;
     const { affiliate_link, title, image, description, category } = req.body || {};
     const price = toNullableNumber(req.body?.price);
 
@@ -141,6 +157,7 @@ app.post("/api/products", requireAuth, async (req, res) => {
 
 app.put("/api/products/:id", requireAuth, async (req, res) => {
   try {
+    const pool = await poolPromise;
     const id = req.params.id;
     const { affiliate_link, title, image, description, category } = req.body || {};
     const price = toNullableNumber(req.body?.price);
@@ -163,6 +180,7 @@ app.put("/api/products/:id", requireAuth, async (req, res) => {
 
 app.delete("/api/products/:id", requireAuth, async (req, res) => {
   try {
+    const pool = await poolPromise;
     const id = req.params.id;
     await pool.query("DELETE FROM products WHERE id = $1", [id]);
     res.status(204).send();
