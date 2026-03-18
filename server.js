@@ -35,6 +35,7 @@ const pool = new Pool(
   DATABASE_URL
     ? {
         connectionString: DATABASE_URL,
+        family: 4,
         ssl: { rejectUnauthorized: false },
       }
     : {
@@ -43,6 +44,7 @@ const pool = new Pool(
         password: DB_PASS,
         database: DB_NAME,
         port: Number(DB_PORT),
+        family: 4,
         ssl: useSsl ? { rejectUnauthorized: false } : undefined,
       }
 );
