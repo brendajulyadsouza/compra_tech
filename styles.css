@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 70%, #fff);
   outline-offset: 2px;

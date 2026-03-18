@@ -486,4 +486,5 @@ async function initAuth() {
 }
 
 resetProductForm();
+showLogin();
 initAuth();
