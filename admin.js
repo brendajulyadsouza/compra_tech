@@ -26,6 +26,7 @@ const inputImage = document.getElementById("image");
 const inputDescription = document.getElementById("description");
 
 const supabase = window.supabaseClient;
+const ADMIN_EMAIL = "brendajulyadsouza@gmail.com";
 let currentEditingId = null;
 let cachedProducts = [];
 let lastAutoFilledLink = "";
@@ -323,6 +324,13 @@ loginForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const email = data.session.user?.email || "";
+  if (email !== ADMIN_EMAIL) {
+    await supabase.auth.signOut();
+    setLoginStatus("Acesso permitido apenas para o admin.", true);
+    return;
+  }
+
   loginForm.reset();
   setLoginStatus("Acesso liberado.");
   showAdmin();
@@ -417,10 +425,16 @@ autoFillBtn.addEventListener("click", async () => {
 
 async function initAuth() {
   const { data } = await supabase.auth.getSession();
-  if (data?.session) {
+  const session = data?.session;
+  const email = session?.user?.email || "";
+  if (session && email === ADMIN_EMAIL) {
     showAdmin();
     await renderAdminProducts();
     return;
+  }
+  if (session && email !== ADMIN_EMAIL) {
+    await supabase.auth.signOut();
+    setLoginStatus("Acesso permitido apenas para o admin.", true);
   }
   showLogin();
   setLoginStatus("Use seu email e senha de admin.");
