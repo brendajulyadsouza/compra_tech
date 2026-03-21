@@ -13,6 +13,8 @@ Ele cria/atualiza a tabela `products` com os campos:
 Tambem cria:
 - `product_events` (historico de eventos `click` e `sale`)
 - funcao RPC `track_product_event(...)` com deduplicacao de venda por `order_id`
+- `clients` (clientes cadastrados)
+- `client_product_selections` (vinculo cliente x produtos)
 
 ## 2) Habilitar RLS + policies
 
@@ -62,6 +64,7 @@ Edite `supabase-config.js` com:
 - Cadastro automatico por link afiliado (titulo, preco, imagem, descricao)
 - Tentativa de puxar comissao automaticamente do Mercado Livre pelo link/produto
 - Gestao completa de produtos (editar, excluir, filtro, busca)
+- Cadastro de clientes e vinculacao de produtos por nome de cliente
 - Calculo automatico de comissao por produto e acumulada
 - Notificacoes e atividades recentes
 - Template de URL para postback de eventos

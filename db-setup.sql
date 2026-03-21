@@ -73,6 +73,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_product_events_sale_order
 ON product_events (order_id)
 WHERE event_type = 'sale' AND order_id IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS clients (
+  id BIGSERIAL PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_clients_full_name_ci
+ON clients (LOWER(full_name));
+
+CREATE TABLE IF NOT EXISTS client_product_selections (
+  id BIGSERIAL PRIMARY KEY,
+  client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (client_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_client_product_selections_client
+ON client_product_selections (client_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_client_product_selections_product
+ON client_product_selections (product_id, created_at DESC);
+
 CREATE OR REPLACE FUNCTION track_product_event(
   p_product_id BIGINT,
   p_event_type TEXT,

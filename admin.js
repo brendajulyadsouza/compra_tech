@@ -17,6 +17,10 @@ const SECTION_META = {
     title: "Produtos",
     subtitle: "Cadastro automatizado e gerenciamento completo de afiliados.",
   },
+  clients: {
+    title: "Clientes",
+    subtitle: "Cadastre clientes e selecione os itens vinculados a cada nome.",
+  },
   commissions: {
     title: "Comissoes",
     subtitle: "Visao detalhada de ganhos por produto e consolidado mensal.",
@@ -69,7 +73,18 @@ const inputDescription = document.getElementById("description");
 const adminProductsList = document.getElementById("admin-products-list");
 const adminEmptyState = document.getElementById("admin-empty-state");
 const filterCategory = document.getElementById("filter-category");
+const filterClient = document.getElementById("filter-client");
 const searchProducts = document.getElementById("search-products");
+
+const clientForm = document.getElementById("client-form");
+const inputClientName = document.getElementById("client-name");
+const clientStatusMessage = document.getElementById("client-status-message");
+const clientsList = document.getElementById("clients-list");
+const clientsEmptyState = document.getElementById("clients-empty-state");
+const clientSelection = document.getElementById("client-selection");
+const clientProductsPicklist = document.getElementById("client-products-picklist");
+const clientProductsEmpty = document.getElementById("client-products-empty");
+const saveClientProductsBtn = document.getElementById("save-client-products-btn");
 
 const statProducts = document.getElementById("stat-products");
 const statClicks = document.getElementById("stat-clicks");
@@ -112,6 +127,8 @@ const PRESET_CATEGORIES = [
 let appSettings = loadSettings();
 let currentEditingId = null;
 let cachedProducts = [];
+let cachedClients = [];
+let cachedClientSelections = [];
 let activeSection = "dashboard";
 let lastAutoFilledLink = "";
 let autoFillTimer = null;
@@ -192,6 +209,12 @@ function setLoginStatus(message, isError = false) {
   if (!loginStatus) return;
   loginStatus.textContent = message;
   loginStatus.style.color = isError ? "#b91c1c" : "#0f766e";
+}
+
+function setClientStatus(message, isError = false) {
+  if (!clientStatusMessage) return;
+  clientStatusMessage.textContent = message;
+  clientStatusMessage.style.color = isError ? "#b91c1c" : "#0f766e";
 }
 
 function showAdmin() {
@@ -288,6 +311,10 @@ function isValidUrl(value) {
 function normalizeCategory(value) {
   const text = String(value || "").trim();
   return text || "Sem categoria";
+}
+
+function normalizeClientName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
 function setCategoryValue(categoryValue) {
@@ -619,11 +646,16 @@ async function fetchProductDataFromLink(link) {
 
 function getFilteredProducts() {
   const category = filterCategory.value || "Todas";
+  const client = filterClient?.value || "Todos";
   const search = String(searchProducts.value || "").trim().toLowerCase();
+  const selectedForClient = client === "Todos" ? null : getSelectedProductIdsForClient(client);
+
   return cachedProducts.filter((product) => {
     const categoryOk = category === "Todas" || normalizeCategory(product.category) === category;
+    const clientOk =
+      !selectedForClient || selectedForClient.has(Number(product.id));
     const searchOk = !search || String(product.title || "").toLowerCase().includes(search);
-    return categoryOk && searchOk;
+    return categoryOk && clientOk && searchOk;
   });
 }
 
@@ -1030,6 +1062,156 @@ function renderCommissionSummary(products) {
   });
 }
 
+function getSelectedProductIdsForClient(clientId) {
+  const targetId = Number(clientId);
+  if (!Number.isFinite(targetId)) return new Set();
+  const ids = cachedClientSelections
+    .filter((entry) => Number(entry.client_id) === targetId)
+    .map((entry) => Number(entry.product_id));
+  return new Set(ids);
+}
+
+function renderClientOptions() {
+  const normalizedClients = [...cachedClients].sort((a, b) =>
+    String(a.full_name || "").localeCompare(String(b.full_name || ""), "pt-BR")
+  );
+
+  if (clientSelection) {
+    const currentSelection = clientSelection.value || "";
+    clientSelection.innerHTML = '<option value="">Selecione um cliente</option>';
+    normalizedClients.forEach((client) => {
+      const option = document.createElement("option");
+      option.value = String(client.id);
+      option.textContent = client.full_name || "Cliente";
+      clientSelection.appendChild(option);
+    });
+    clientSelection.value = normalizedClients.some((c) => String(c.id) === currentSelection)
+      ? currentSelection
+      : "";
+  }
+
+  if (filterClient) {
+    const currentFilter = filterClient.value || "Todos";
+    filterClient.innerHTML = '<option value="Todos">Todos os clientes</option>';
+    normalizedClients.forEach((client) => {
+      const option = document.createElement("option");
+      option.value = String(client.id);
+      option.textContent = client.full_name || "Cliente";
+      filterClient.appendChild(option);
+    });
+    filterClient.value = normalizedClients.some((c) => String(c.id) === currentFilter)
+      ? currentFilter
+      : "Todos";
+  }
+}
+
+function renderClientsList() {
+  if (!clientsList || !clientsEmptyState) return;
+  clientsList.innerHTML = "";
+
+  if (!cachedClients.length) {
+    clientsEmptyState.style.display = "block";
+    return;
+  }
+
+  clientsEmptyState.style.display = "none";
+
+  const sortedClients = [...cachedClients].sort((a, b) =>
+    String(a.full_name || "").localeCompare(String(b.full_name || ""), "pt-BR")
+  );
+
+  sortedClients.forEach((client) => {
+    const selectedCount = cachedClientSelections.filter(
+      (entry) => Number(entry.client_id) === Number(client.id)
+    ).length;
+
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div>
+        <h3>${escapeHtml(client.full_name || "Cliente")}</h3>
+        <p>${selectedCount} item(ns) vinculado(s)</p>
+      </div>
+      <div class="admin-actions">
+        <button class="btn-danger" type="button" data-client-id="${client.id}">Excluir</button>
+      </div>
+    `;
+
+    clientsList.appendChild(row);
+  });
+
+  clientsList.querySelectorAll("[data-client-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const clientId = button.getAttribute("data-client-id");
+      const target = cachedClients.find((item) => String(item.id) === String(clientId));
+      const label = target?.full_name || "Cliente";
+      if (!window.confirm(`Deseja excluir o cliente \"${label}\"?`)) return;
+
+      try {
+        const { error } = await supabase.from("clients").delete().eq("id", clientId);
+        if (error) throw error;
+        setClientStatus("Cliente removido com sucesso.");
+        showToast("Cliente removido.", "warning");
+        await refreshAllData();
+      } catch (error) {
+        console.error(error);
+        setClientStatus("Nao foi possivel remover o cliente.", true);
+        showToast("Falha ao remover cliente.", "error");
+      }
+    });
+  });
+}
+
+function renderClientProductsPicklist() {
+  if (!clientProductsPicklist || !clientProductsEmpty || !clientSelection) return;
+
+  const selectedClientId = Number(clientSelection.value);
+  clientProductsPicklist.innerHTML = "";
+
+  if (!Number.isFinite(selectedClientId)) {
+    clientProductsEmpty.style.display = "block";
+    return;
+  }
+
+  if (!cachedProducts.length) {
+    clientProductsEmpty.textContent = "Cadastre produtos antes de vincular ao cliente.";
+    clientProductsEmpty.style.display = "block";
+    return;
+  }
+
+  const selectedIds = getSelectedProductIdsForClient(selectedClientId);
+  clientProductsEmpty.style.display = "none";
+
+  cachedProducts.forEach((product) => {
+    const item = document.createElement("label");
+    item.className = "client-pick-item";
+    item.innerHTML = `
+      <input type="checkbox" value="${product.id}" ${selectedIds.has(Number(product.id)) ? "checked" : ""}>
+      <span>${escapeHtml(product.title || "Produto sem titulo")}</span>
+    `;
+    clientProductsPicklist.appendChild(item);
+  });
+}
+
+async function loadClients() {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, full_name, created_at")
+    .order("full_name", { ascending: true });
+
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+async function loadClientSelections() {
+  const { data, error } = await supabase
+    .from("client_product_selections")
+    .select("id, client_id, product_id");
+
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
 async function loadProducts() {
   const { data, error } = await supabase
     .from("products")
@@ -1048,9 +1230,21 @@ async function refreshAllData(showFeedback = false) {
     refreshBtn.disabled = true;
     refreshBtn.textContent = "Atualizando...";
 
-    cachedProducts = await loadProducts();
+    const [products, clients, clientSelections] = await Promise.all([
+      loadProducts(),
+      loadClients(),
+      loadClientSelections(),
+    ]);
+
+    cachedProducts = products;
+    cachedClients = clients;
+    cachedClientSelections = clientSelections;
+
     updateCategoryFilterOptions();
+    renderClientOptions();
     renderAdminProducts();
+    renderClientsList();
+    renderClientProductsPicklist();
     renderDashboard(cachedProducts);
     renderCommissionSummary(cachedProducts);
     renderActivities();
@@ -1061,10 +1255,7 @@ async function refreshAllData(showFeedback = false) {
     }
   } catch (error) {
     console.error(error);
-    const hint =
-      String(error?.message || "").includes("column")
-        ? "Falha ao carregar colunas de comissao/cliques. Execute o SQL de migracao em db-setup.sql."
-        : "Nao foi possivel atualizar o painel agora.";
+    const hint = "Nao foi possivel atualizar o painel agora. Execute o SQL de migracao completo (db-setup.sql).";
     setStatus(hint, true);
     showToast(hint, "error");
   } finally {
@@ -1273,7 +1464,80 @@ refreshBtn?.addEventListener("click", async () => {
 });
 
 filterCategory?.addEventListener("change", renderAdminProducts);
+filterClient?.addEventListener("change", renderAdminProducts);
 searchProducts?.addEventListener("input", renderAdminProducts);
+
+clientForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const fullName = normalizeClientName(inputClientName.value);
+  if (!fullName) {
+    setClientStatus("Informe o nome do cliente.", true);
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from("clients").insert({ full_name: fullName });
+    if (error) throw error;
+
+    clientForm.reset();
+    setClientStatus("Cliente cadastrado com sucesso.");
+    showToast("Cliente cadastrado.", "success");
+    await refreshAllData();
+  } catch (error) {
+    console.error(error);
+    const duplicated = String(error?.message || "").toLowerCase().includes("duplicate");
+    setClientStatus(duplicated ? "Este nome de cliente ja existe." : "Nao foi possivel cadastrar o cliente.", true);
+    showToast("Falha ao cadastrar cliente.", "error");
+  }
+});
+
+clientSelection?.addEventListener("change", () => {
+  renderClientProductsPicklist();
+});
+
+saveClientProductsBtn?.addEventListener("click", async () => {
+  const selectedClientId = Number(clientSelection?.value || "");
+  if (!Number.isFinite(selectedClientId)) {
+    setClientStatus("Selecione um cliente para vincular os produtos.", true);
+    return;
+  }
+
+  const checkedProductIds = Array.from(
+    clientProductsPicklist?.querySelectorAll('input[type=\"checkbox\"]:checked') || []
+  ).map((element) => Number(element.value)).filter((value) => Number.isFinite(value));
+
+  try {
+    const { error: deleteError } = await supabase
+      .from("client_product_selections")
+      .delete()
+      .eq("client_id", selectedClientId);
+    if (deleteError) throw deleteError;
+
+    if (checkedProductIds.length) {
+      const payload = checkedProductIds.map((productId) => ({
+        client_id: selectedClientId,
+        product_id: productId,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("client_product_selections")
+        .insert(payload);
+      if (insertError) throw insertError;
+    }
+
+    setClientStatus("Itens vinculados ao cliente com sucesso.");
+    showToast("Vinculos de cliente atualizados.", "success");
+    await refreshAllData();
+    if (clientSelection) clientSelection.value = String(selectedClientId);
+    renderClientProductsPicklist();
+    renderAdminProducts();
+  } catch (error) {
+    console.error(error);
+    setClientStatus("Nao foi possivel salvar os itens do cliente.", true);
+    showToast("Falha ao salvar itens do cliente.", "error");
+  }
+});
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {

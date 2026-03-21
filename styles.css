@@ -1500,6 +1500,36 @@ h3,
   gap: 0.7rem;
 }
 
+.clients-list {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.client-products-picklist {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.client-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  padding: 0.55rem 0.65rem;
+  font-weight: 600;
+}
+
+.client-pick-item input {
+  accent-color: var(--accent);
+}
+
 .admin-product-row {
   border: 1px solid var(--border);
   border-radius: 13px;
