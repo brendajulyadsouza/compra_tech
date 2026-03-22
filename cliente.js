@@ -243,6 +243,40 @@ function getFilteredProducts() {
   return allProducts.filter((product) => normalizeCategory(product.category) === activeCategory);
 }
 
+function getProductsStats(products) {
+  const items = Array.isArray(products) ? products : [];
+  let totalPrice = 0;
+  let pricedItems = 0;
+
+  items.forEach((product) => {
+    const numericPrice = Number(product?.price);
+    if (Number.isFinite(numericPrice) && numericPrice > 0) {
+      totalPrice += numericPrice;
+      pricedItems += 1;
+    }
+  });
+
+  return {
+    count: items.length,
+    pricedItems,
+    unpricedItems: Math.max(0, items.length - pricedItems),
+    totalPrice,
+  };
+}
+
+function renderPortalSummary() {
+  if (!portalSubtitle) return;
+  const stats = getProductsStats(allProducts);
+  const pieces = [
+    `${stats.count} item(ns) vinculados ao seu cadastro`,
+    `Somatoria: ${formatBRL(stats.totalPrice)}`,
+  ];
+  if (stats.unpricedItems > 0) {
+    pieces.push(`${stats.unpricedItems} sem preco`);
+  }
+  portalSubtitle.textContent = pieces.join(" | ");
+}
+
 function getCategoryList(products) {
   const categories = new Set(["Todas"]);
   products.forEach((item) => categories.add(normalizeCategory(item.category)));
@@ -391,9 +425,7 @@ async function authenticateAndLoad(credentials, showInvalidMessage = true) {
   });
 
   if (portalTitle) portalTitle.textContent = `Produtos de ${activeClient.name}`;
-  if (portalSubtitle) {
-    portalSubtitle.textContent = `${allProducts.length} item(ns) vinculados ao seu cadastro.`;
-  }
+  renderPortalSummary();
 
   const categories = getCategoryList(allProducts);
   renderCategoryFilter(categories);
@@ -410,9 +442,7 @@ async function refreshCurrentClient() {
   try {
     const products = await fetchClientProducts(activeClient.id, activeClient.accessCode);
     allProducts = products;
-    if (portalSubtitle) {
-      portalSubtitle.textContent = `${allProducts.length} item(ns) vinculados ao seu cadastro.`;
-    }
+    renderPortalSummary();
     const categories = getCategoryList(allProducts);
     renderCategoryFilter(categories);
     renderProducts(getFilteredProducts());

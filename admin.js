@@ -83,6 +83,7 @@ const clientStatusMessage = document.getElementById("client-status-message");
 const clientsList = document.getElementById("clients-list");
 const clientsEmptyState = document.getElementById("clients-empty-state");
 const clientSelection = document.getElementById("client-selection");
+const clientSelectionSummary = document.getElementById("client-selection-summary");
 const clientProductsPicklist = document.getElementById("client-products-picklist");
 const clientProductsEmpty = document.getElementById("client-products-empty");
 const saveClientProductsBtn = document.getElementById("save-client-products-btn");
@@ -1123,6 +1124,49 @@ function getSelectedProductIdsForClient(clientId) {
   return new Set(ids);
 }
 
+function getClientProductsStats(clientId) {
+  const selectedIds = getSelectedProductIdsForClient(clientId);
+  let totalPrice = 0;
+  let pricedItems = 0;
+
+  cachedProducts.forEach((product) => {
+    if (!selectedIds.has(Number(product.id))) return;
+    const numericPrice = Number(product.price);
+    if (Number.isFinite(numericPrice) && numericPrice > 0) {
+      totalPrice += numericPrice;
+      pricedItems += 1;
+    }
+  });
+
+  return {
+    count: selectedIds.size,
+    pricedItems,
+    unpricedItems: Math.max(0, selectedIds.size - pricedItems),
+    totalPrice,
+  };
+}
+
+function renderClientSelectionSummary(clientId) {
+  if (!clientSelectionSummary) return;
+
+  const targetId = Number(clientId);
+  if (!Number.isFinite(targetId)) {
+    clientSelectionSummary.textContent = "Selecione um cliente para ver a somatoria dos itens.";
+    return;
+  }
+
+  const stats = getClientProductsStats(targetId);
+  const pieces = [
+    `${stats.count} item(ns)`,
+    `Somatoria: ${formatBRL(stats.totalPrice)}`,
+  ];
+  if (stats.unpricedItems > 0) {
+    pieces.push(`${stats.unpricedItems} sem preco`);
+  }
+
+  clientSelectionSummary.textContent = pieces.join(" | ");
+}
+
 function renderClientOptions() {
   const normalizedClients = [...cachedClients].sort((a, b) =>
     String(a.full_name || "").localeCompare(String(b.full_name || ""), "pt-BR")
@@ -1173,9 +1217,7 @@ function renderClientsList() {
   );
 
   sortedClients.forEach((client) => {
-    const selectedCount = cachedClientSelections.filter(
-      (entry) => Number(entry.client_id) === Number(client.id)
-    ).length;
+    const stats = getClientProductsStats(client.id);
     const accessCode = normalizeClientAccessCode(client.access_code || "");
 
     const row = document.createElement("div");
@@ -1183,7 +1225,8 @@ function renderClientsList() {
     row.innerHTML = `
       <div>
         <h3>${escapeHtml(client.full_name || "Cliente")}</h3>
-        <p>${selectedCount} item(ns) vinculado(s)</p>
+        <p>${stats.count} item(ns) vinculado(s)</p>
+        <p><strong>Somatoria:</strong> ${formatBRL(stats.totalPrice)}</p>
         <p><strong>Codigo:</strong> ${escapeHtml(accessCode || "-")}</p>
       </div>
       <div class="admin-actions admin-actions--stack">
@@ -1261,17 +1304,20 @@ function renderClientProductsPicklist() {
   clientProductsPicklist.innerHTML = "";
 
   if (!Number.isFinite(selectedClientId)) {
+    renderClientSelectionSummary(null);
     clientProductsEmpty.style.display = "block";
     return;
   }
 
   if (!cachedProducts.length) {
+    renderClientSelectionSummary(selectedClientId);
     clientProductsEmpty.textContent = "Cadastre produtos antes de vincular ao cliente.";
     clientProductsEmpty.style.display = "block";
     return;
   }
 
   const selectedIds = getSelectedProductIdsForClient(selectedClientId);
+  renderClientSelectionSummary(selectedClientId);
   clientProductsEmpty.style.display = "none";
 
   cachedProducts.forEach((product) => {
