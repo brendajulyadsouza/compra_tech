@@ -18,7 +18,12 @@ Tambem cria:
 
 ## 2) Habilitar RLS + policies
 
-Ative RLS na tabela `products` e rode:
+Rode o `db-setup.sql` completo. Ele agora ja aplica:
+- `GRANT` e `RLS` para `products`, `clients` e `client_product_selections`
+- policies de leitura/escrita para `authenticated`
+- leitura publica (`anon`) apenas em `products`
+
+Se quiser aplicar manualmente, use ao menos:
 
 ```sql
 create policy "public read"

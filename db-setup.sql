@@ -189,3 +189,106 @@ $$;
 
 GRANT EXECUTE ON FUNCTION track_product_event(BIGINT, TEXT, TEXT, TEXT, JSONB) TO anon;
 GRANT EXECUTE ON FUNCTION track_product_event(BIGINT, TEXT, TEXT, TEXT, JSONB) TO authenticated;
+
+-- Permissoes e RLS/policies para painel admin (produtos, clientes e vinculos).
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+GRANT SELECT ON TABLE products TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE products TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE clients TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE client_product_selections TO authenticated;
+
+GRANT USAGE, SELECT ON SEQUENCE products_id_seq TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE clients_id_seq TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE client_product_selections_id_seq TO authenticated;
+
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_product_selections ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS products_public_read ON products;
+CREATE POLICY products_public_read
+ON products
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+DROP POLICY IF EXISTS products_auth_insert ON products;
+CREATE POLICY products_auth_insert
+ON products
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS products_auth_update ON products;
+CREATE POLICY products_auth_update
+ON products
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS products_auth_delete ON products;
+CREATE POLICY products_auth_delete
+ON products
+FOR DELETE
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS clients_auth_read ON clients;
+CREATE POLICY clients_auth_read
+ON clients
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS clients_auth_insert ON clients;
+CREATE POLICY clients_auth_insert
+ON clients
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS clients_auth_update ON clients;
+CREATE POLICY clients_auth_update
+ON clients
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS clients_auth_delete ON clients;
+CREATE POLICY clients_auth_delete
+ON clients
+FOR DELETE
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS client_selections_auth_read ON client_product_selections;
+CREATE POLICY client_selections_auth_read
+ON client_product_selections
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS client_selections_auth_insert ON client_product_selections;
+CREATE POLICY client_selections_auth_insert
+ON client_product_selections
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS client_selections_auth_update ON client_product_selections;
+CREATE POLICY client_selections_auth_update
+ON client_product_selections
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS client_selections_auth_delete ON client_product_selections;
+CREATE POLICY client_selections_auth_delete
+ON client_product_selections
+FOR DELETE
+TO authenticated
+USING (true);

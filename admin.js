@@ -217,6 +217,28 @@ function setClientStatus(message, isError = false) {
   clientStatusMessage.style.color = isError ? "#b91c1c" : "#0f766e";
 }
 
+function describeDbError(error) {
+  const code = String(error?.code || "").trim().toUpperCase();
+  const message = String(error?.message || "").trim();
+  const details = String(error?.details || "").trim();
+  const hint = String(error?.hint || "").trim();
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+
+  const permissionIssue =
+    code === "42501" ||
+    combined.includes("row-level security") ||
+    combined.includes("permission denied");
+
+  if (permissionIssue) {
+    return "Sem permissao no banco para esta acao. Rode o db-setup.sql atualizado (secao de RLS/policies).";
+  }
+
+  if (message) return message;
+  if (details) return details;
+  if (hint) return hint;
+  return "Erro inesperado no banco.";
+}
+
 function showAdmin() {
   if (loginGate) loginGate.hidden = true;
   if (adminApp) adminApp.hidden = false;
@@ -1155,7 +1177,7 @@ function renderClientsList() {
         await refreshAllData();
       } catch (error) {
         console.error(error);
-        setClientStatus("Nao foi possivel remover o cliente.", true);
+        setClientStatus(`Nao foi possivel remover o cliente. ${describeDbError(error)}`, true);
         showToast("Falha ao remover cliente.", "error");
       }
     });
@@ -1487,7 +1509,12 @@ clientForm?.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error(error);
     const duplicated = String(error?.message || "").toLowerCase().includes("duplicate");
-    setClientStatus(duplicated ? "Este nome de cliente ja existe." : "Nao foi possivel cadastrar o cliente.", true);
+    setClientStatus(
+      duplicated
+        ? "Este nome de cliente ja existe."
+        : `Nao foi possivel cadastrar o cliente. ${describeDbError(error)}`,
+      true
+    );
     showToast("Falha ao cadastrar cliente.", "error");
   }
 });
@@ -1534,7 +1561,7 @@ saveClientProductsBtn?.addEventListener("click", async () => {
     renderAdminProducts();
   } catch (error) {
     console.error(error);
-    setClientStatus("Nao foi possivel salvar os itens do cliente.", true);
+    setClientStatus(`Nao foi possivel salvar os itens do cliente. ${describeDbError(error)}`, true);
     showToast("Falha ao salvar itens do cliente.", "error");
   }
 });
