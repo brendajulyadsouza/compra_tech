@@ -51,6 +51,7 @@
 
       <div class="admin-sidebar__footer">
         <a class="btn-secondary" href="index.html">Vitrine</a>
+        <a class="btn-secondary" href="cliente.html">Area Cliente</a>
         <button id="logout-btn" class="btn-secondary" type="button">Sair</button>
       </div>
     </aside>
@@ -229,6 +230,11 @@
                 Nome do cliente
                 <input id="client-name" type="text" required placeholder="Ex.: Joao Silva">
               </label>
+              <label>
+                Codigo de acesso (opcional)
+                <input id="client-access-code" type="text" placeholder="Ex.: JOAO2026">
+              </label>
+              <p class="empty-state">Se deixar em branco, o painel gera um codigo automaticamente.</p>
               <button class="btn-primary" type="submit">Cadastrar cliente</button>
             </form>
             <p id="client-status-message" class="status-message"></p>

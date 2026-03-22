@@ -13,8 +13,9 @@ Ele cria/atualiza a tabela `products` com os campos:
 Tambem cria:
 - `product_events` (historico de eventos `click` e `sale`)
 - funcao RPC `track_product_event(...)` com deduplicacao de venda por `order_id`
-- `clients` (clientes cadastrados)
+- `clients` (clientes cadastrados, com `access_code`)
 - `client_product_selections` (vinculo cliente x produtos)
+- `client_portal_login(...)` e `client_portal_products(...)` para area do cliente
 
 ## 2) Habilitar RLS + policies
 
@@ -69,7 +70,7 @@ Edite `supabase-config.js` com:
 - Cadastro automatico por link afiliado (titulo, preco, imagem, descricao)
 - Tentativa de puxar comissao automaticamente do Mercado Livre pelo link/produto
 - Gestao completa de produtos (editar, excluir, filtro, busca)
-- Cadastro de clientes e vinculacao de produtos por nome de cliente
+- Cadastro de clientes com codigo de acesso e vinculacao de produtos por nome de cliente
 - Calculo automatico de comissao por produto e acumulada
 - Notificacoes e atividades recentes
 - Template de URL para postback de eventos
@@ -79,7 +80,19 @@ Observacao:
 - Se a comissao nao vier automaticamente no link/produto, o painel exige preenchimento manual.
 - O campo "Comissao fallback (%)" nas configuracoes e opcional.
 
-## 6) Tracking real por evento
+## 6) Area do cliente (login por nome + codigo)
+
+`cliente.html` + `cliente.js` incluem:
+- Login com `nome` + `codigo de acesso`
+- Exibicao apenas dos produtos vinculados ao cliente logado
+- Filtro por categoria, refresh da lista e logout
+- Sem exibicao de comissao
+
+No painel admin:
+- Ao cadastrar cliente, o codigo pode ser digitado ou gerado automaticamente
+- Na lista de clientes, o codigo pode ser copiado e renovado
+
+## 7) Tracking real por evento
 
 Cliques:
 - A vitrine publica registra `click` automaticamente ao abrir o link afiliado.
@@ -96,4 +109,4 @@ Exemplo:
 
 ## Regra importante
 
-A comissao aparece apenas no ADMIN. A vitrine publica (`index.html` / `mercado-livre.html`) nao exibe dados de comissao.
+A comissao aparece apenas no ADMIN. A vitrine publica (`index.html` / `mercado-livre.html`) e a area do cliente (`cliente.html`) nao exibem dados de comissao.

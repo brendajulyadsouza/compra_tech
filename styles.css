@@ -1530,6 +1530,14 @@ h3,
   accent-color: var(--accent);
 }
 
+.client-portal-hero {
+  margin-bottom: 1.1rem;
+}
+
+.client-portal-hero .hero__content {
+  max-width: 760px;
+}
+
 .admin-product-row {
   border: 1px solid var(--border);
   border-radius: 13px;

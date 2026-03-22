@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Area do Cliente - CompraTech</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./logo.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="./logo.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="./logo.png?v=2">
+  <link rel="apple-touch-icon" href="./logo.png?v=2">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <img src="logo.png" alt="CompraTech" class="brand__logo">
+        <span>CompraTech</span>
+      </div>
+      <nav class="topnav">
+        <a href="index.html">Vitrine</a>
+        <a href="mercado-livre.html">Mercado Livre</a>
+        <a href="admin.html">Painel ADM</a>
+      </nav>
+    </div>
+  </div>
+
+  <section id="client-login-gate" class="container auth-wrapper">
+    <section class="card auth-card admin-auth-card">
+      <a class="btn-secondary" href="index.html">Voltar para vitrine</a>
+      <h1>Area do Cliente</h1>
+      <p class="subtitle">Acesse com seu nome e codigo para visualizar apenas os produtos vinculados ao seu cadastro.</p>
+      <form id="client-login-form" class="form">
+        <label>
+          Nome do cliente
+          <input id="client-login-name" type="text" required autocomplete="username" placeholder="Ex.: Joao Silva">
+        </label>
+        <label>
+          Codigo de acesso
+          <input id="client-login-code" type="password" required autocomplete="current-password" placeholder="Ex.: X7K2R9A1">
+        </label>
+        <button class="btn-primary" type="submit">Entrar</button>
+      </form>
+      <p id="client-login-status" class="status-message"></p>
+    </section>
+  </section>
+
+  <div id="client-app" hidden>
+    <header class="hero client-portal-hero">
+      <div class="hero__layout">
+        <div class="hero__content">
+          <p class="tag">Area exclusiva</p>
+          <h1 id="client-portal-title">Produtos do cliente</h1>
+          <p id="client-portal-subtitle" class="subtitle">Carregando produtos vinculados...</p>
+          <div class="hero__actions">
+            <button id="client-refresh-btn" class="btn-secondary" type="button">Atualizar lista</button>
+            <button id="client-logout-btn" class="btn-secondary" type="button">Sair</button>
+          </div>
+        </div>
+        <aside class="hero__aside">
+          <div class="hero__card hero__card--highlight">
+            <h3>Acesso personalizado</h3>
+            <p>Esta area mostra somente os itens que foram vinculados ao seu nome no painel administrativo.</p>
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <div class="section-head section-head--inline">
+          <h2>Seus itens cadastrados</h2>
+          <select id="client-category-filter" class="select-compact">
+            <option value="Todas">Todas as categorias</option>
+          </select>
+        </div>
+        <div id="client-products-grid" class="products-grid"></div>
+        <p id="client-products-empty" class="empty-state">Nenhum produto vinculado para este cliente.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="storage.js"></script>
+  <script src="cliente.js"></script>
+</body>
+</html>

@@ -19,7 +19,7 @@ const SECTION_META = {
   },
   clients: {
     title: "Clientes",
-    subtitle: "Cadastre clientes e selecione os itens vinculados a cada nome.",
+    subtitle: "Cadastre clientes com codigo de acesso e selecione os itens vinculados.",
   },
   commissions: {
     title: "Comissoes",
@@ -78,6 +78,7 @@ const searchProducts = document.getElementById("search-products");
 
 const clientForm = document.getElementById("client-form");
 const inputClientName = document.getElementById("client-name");
+const inputClientAccessCode = document.getElementById("client-access-code");
 const clientStatusMessage = document.getElementById("client-status-message");
 const clientsList = document.getElementById("clients-list");
 const clientsEmptyState = document.getElementById("clients-empty-state");
@@ -337,6 +338,35 @@ function normalizeCategory(value) {
 
 function normalizeClientName(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function normalizeClientAccessCode(value) {
+  return String(value || "")
+    .toUpperCase()
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9_-]/g, "")
+    .slice(0, 24);
+}
+
+function generateClientAccessCode(size = 8) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const targetSize = Math.max(6, Math.min(24, Number(size) || 8));
+  let output = "";
+
+  if (window.crypto?.getRandomValues) {
+    const values = new Uint32Array(targetSize);
+    window.crypto.getRandomValues(values);
+    for (let index = 0; index < targetSize; index += 1) {
+      output += alphabet[values[index] % alphabet.length];
+    }
+    return output;
+  }
+
+  for (let index = 0; index < targetSize; index += 1) {
+    output += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return output;
 }
 
 function setCategoryValue(categoryValue) {
@@ -1146,6 +1176,7 @@ function renderClientsList() {
     const selectedCount = cachedClientSelections.filter(
       (entry) => Number(entry.client_id) === Number(client.id)
     ).length;
+    const accessCode = normalizeClientAccessCode(client.access_code || "");
 
     const row = document.createElement("div");
     row.className = "admin-row";
@@ -1153,13 +1184,52 @@ function renderClientsList() {
       <div>
         <h3>${escapeHtml(client.full_name || "Cliente")}</h3>
         <p>${selectedCount} item(ns) vinculado(s)</p>
+        <p><strong>Codigo:</strong> ${escapeHtml(accessCode || "-")}</p>
       </div>
-      <div class="admin-actions">
+      <div class="admin-actions admin-actions--stack">
+        <button class="btn-secondary" type="button" data-client-copy-code="${escapeHtml(accessCode)}">Copiar codigo</button>
+        <button class="btn-secondary" type="button" data-client-rotate-code="${client.id}">Gerar novo codigo</button>
         <button class="btn-danger" type="button" data-client-id="${client.id}">Excluir</button>
       </div>
     `;
 
     clientsList.appendChild(row);
+  });
+
+  clientsList.querySelectorAll("[data-client-copy-code]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const code = normalizeClientAccessCode(button.getAttribute("data-client-copy-code"));
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        setClientStatus(`Codigo copiado: ${code}`);
+        showToast("Codigo do cliente copiado.", "success");
+      } catch {
+        setClientStatus(`Codigo do cliente: ${code}`);
+      }
+    });
+  });
+
+  clientsList.querySelectorAll("[data-client-rotate-code]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const clientId = button.getAttribute("data-client-rotate-code");
+      const target = cachedClients.find((item) => String(item.id) === String(clientId));
+      const label = target?.full_name || "Cliente";
+      if (!window.confirm(`Gerar novo codigo para \"${label}\"?`)) return;
+
+      const newCode = generateClientAccessCode();
+      try {
+        const { error } = await supabase.from("clients").update({ access_code: newCode }).eq("id", clientId);
+        if (error) throw error;
+        setClientStatus(`Novo codigo para ${label}: ${newCode}`);
+        showToast("Codigo de acesso atualizado.", "success");
+        await refreshAllData();
+      } catch (error) {
+        console.error(error);
+        setClientStatus(`Nao foi possivel gerar novo codigo. ${describeDbError(error)}`, true);
+        showToast("Falha ao gerar codigo.", "error");
+      }
+    });
   });
 
   clientsList.querySelectorAll("[data-client-id]").forEach((button) => {
@@ -1216,13 +1286,27 @@ function renderClientProductsPicklist() {
 }
 
 async function loadClients() {
-  const { data, error } = await supabase
+  const baseQuery = supabase
+    .from("clients")
+    .select("id, full_name, access_code, created_at")
+    .order("full_name", { ascending: true });
+
+  const { data, error } = await baseQuery;
+  if (!error) return Array.isArray(data) ? data : [];
+
+  const missingColumn = String(error?.message || "").toLowerCase().includes("access_code");
+  if (!missingColumn) throw error;
+
+  const fallback = await supabase
     .from("clients")
     .select("id, full_name, created_at")
     .order("full_name", { ascending: true });
 
-  if (error) throw error;
-  return Array.isArray(data) ? data : [];
+  if (fallback.error) throw fallback.error;
+  return (Array.isArray(fallback.data) ? fallback.data : []).map((client) => ({
+    ...client,
+    access_code: "",
+  }));
 }
 
 async function loadClientSelections() {
@@ -1493,17 +1577,23 @@ clientForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const fullName = normalizeClientName(inputClientName.value);
+  const customCode = normalizeClientAccessCode(inputClientAccessCode?.value || "");
+  const accessCode = customCode || generateClientAccessCode();
+
   if (!fullName) {
     setClientStatus("Informe o nome do cliente.", true);
     return;
   }
 
   try {
-    const { error } = await supabase.from("clients").insert({ full_name: fullName });
+    const { error } = await supabase.from("clients").insert({
+      full_name: fullName,
+      access_code: accessCode,
+    });
     if (error) throw error;
 
     clientForm.reset();
-    setClientStatus("Cliente cadastrado com sucesso.");
+    setClientStatus(`Cliente cadastrado. Codigo de acesso: ${accessCode}`);
     showToast("Cliente cadastrado.", "success");
     await refreshAllData();
   } catch (error) {
@@ -1511,7 +1601,7 @@ clientForm?.addEventListener("submit", async (event) => {
     const duplicated = String(error?.message || "").toLowerCase().includes("duplicate");
     setClientStatus(
       duplicated
-        ? "Este nome de cliente ja existe."
+        ? "Este nome de cliente ou codigo de acesso ja existe."
         : `Nao foi possivel cadastrar o cliente. ${describeDbError(error)}`,
       true
     );

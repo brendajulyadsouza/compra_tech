@@ -79,6 +79,22 @@ CREATE TABLE IF NOT EXISTS clients (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS access_code TEXT;
+
+UPDATE clients
+SET access_code = UPPER(SUBSTRING(MD5(RANDOM()::TEXT || CLOCK_TIMESTAMP()::TEXT) FOR 8))
+WHERE access_code IS NULL OR TRIM(access_code) = '';
+
+UPDATE clients
+SET access_code = UPPER(REGEXP_REPLACE(access_code, '\s+', '', 'g'))
+WHERE access_code IS NOT NULL;
+
+ALTER TABLE clients
+ALTER COLUMN access_code
+SET DEFAULT UPPER(SUBSTRING(MD5(RANDOM()::TEXT || CLOCK_TIMESTAMP()::TEXT) FOR 8));
+
+ALTER TABLE clients ALTER COLUMN access_code SET NOT NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_clients_full_name_ci
 ON clients (LOWER(full_name));
 
@@ -187,8 +203,108 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION client_portal_login(
+  p_full_name TEXT,
+  p_access_code TEXT
+)
+RETURNS TABLE (
+  ok BOOLEAN,
+  client_id BIGINT,
+  client_name TEXT,
+  message TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_name TEXT := TRIM(COALESCE(p_full_name, ''));
+  v_code TEXT := UPPER(TRIM(COALESCE(p_access_code, '')));
+  v_client_id BIGINT;
+  v_client_name TEXT;
+BEGIN
+  IF v_name = '' OR v_code = '' THEN
+    RETURN QUERY SELECT FALSE, NULL::BIGINT, NULL::TEXT, 'credenciais obrigatorias';
+    RETURN;
+  END IF;
+
+  SELECT c.id, c.full_name
+  INTO v_client_id, v_client_name
+  FROM clients c
+  WHERE LOWER(c.full_name) = LOWER(v_name)
+    AND UPPER(c.access_code) = v_code
+  LIMIT 1;
+
+  IF v_client_id IS NULL THEN
+    RETURN QUERY SELECT FALSE, NULL::BIGINT, NULL::TEXT, 'credenciais invalidas';
+    RETURN;
+  END IF;
+
+  RETURN QUERY SELECT TRUE, v_client_id, v_client_name, 'acesso liberado';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION client_portal_products(
+  p_client_id BIGINT,
+  p_access_code TEXT
+)
+RETURNS TABLE (
+  id BIGINT,
+  affiliate_link TEXT,
+  title TEXT,
+  category TEXT,
+  price NUMERIC(12,2),
+  image TEXT,
+  description TEXT,
+  created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_client_id BIGINT := p_client_id;
+  v_code TEXT := UPPER(TRIM(COALESCE(p_access_code, '')));
+  v_valid BOOLEAN := FALSE;
+BEGIN
+  IF v_client_id IS NULL OR v_code = '' THEN
+    RETURN;
+  END IF;
+
+  SELECT TRUE
+  INTO v_valid
+  FROM clients c
+  WHERE c.id = v_client_id
+    AND UPPER(c.access_code) = v_code
+  LIMIT 1;
+
+  IF NOT COALESCE(v_valid, FALSE) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.affiliate_link,
+    p.title,
+    p.category,
+    p.price,
+    p.image,
+    p.description,
+    p.created_at
+  FROM client_product_selections cps
+  JOIN products p ON p.id = cps.product_id
+  WHERE cps.client_id = v_client_id
+  ORDER BY p.created_at DESC;
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION track_product_event(BIGINT, TEXT, TEXT, TEXT, JSONB) TO anon;
 GRANT EXECUTE ON FUNCTION track_product_event(BIGINT, TEXT, TEXT, TEXT, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION client_portal_login(TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION client_portal_login(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION client_portal_products(BIGINT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION client_portal_products(BIGINT, TEXT) TO authenticated;
 
 -- Permissoes e RLS/policies para painel admin (produtos, clientes e vinculos).
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
